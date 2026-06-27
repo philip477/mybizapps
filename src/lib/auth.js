@@ -21,7 +21,7 @@ export async function getUser() {
   const { data: bizUser } = await supabase
     .from('biz_users')
     .select('*')
-    .ilike('useremail', user.email)
+    .ilike('email', user.email)
     .maybeSingle()
 
   if (!bizUser) {
@@ -30,9 +30,10 @@ export async function getUser() {
 
   return {
     id: bizUser.id,
-    email: bizUser.useremail,
-    full_name: bizUser.full_name,
+    email: bizUser.email,
+    full_name: `${bizUser.first_name || ''} ${bizUser.last_name || ''}`.trim(),
     first_name: bizUser.first_name,
+    last_name: bizUser.last_name,
     role: bizUser.user_role,
     facility_id: bizUser.facility_id,
   }

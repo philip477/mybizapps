@@ -48,7 +48,7 @@ export async function proxy(request) {
   const { data: me } = await supabase
     .from('biz_users')
     .select('user_role')
-    .ilike('useremail', user.email)
+    .ilike('email', user.email)
     .maybeSingle()
   const role = me?.user_role ?? null
 
