@@ -1,15 +1,17 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import HomeClient from './HomeClient'
+import MarketingPage from './MarketingPage'
 
-// Home — server component. Auth is enforced by proxy.js, but we re-check here
-// and resolve the per-user navigation server-side, then hand a plain payload to
-// the client tile renderer.
+// Home — server component. "/" is public: authenticated users get the app home
+// (HomeClient), while unauthenticated visitors get the marketing landing page.
+// proxy.js deliberately lets unauthenticated requests reach "/", so the auth
+// branch is decided here rather than via a redirect.
 export default async function HomePage() {
   const supabase = await createClient()
 
   const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser) redirect('/login')
+  if (!authUser) return <MarketingPage />
 
   // App-level profile.
   const { data: bizUser } = await supabase

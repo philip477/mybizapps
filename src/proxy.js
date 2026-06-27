@@ -33,7 +33,16 @@ export async function proxy(request) {
 
   const path = request.nextUrl.pathname
 
+  // Public routes that do NOT require authentication. "/" serves the marketing
+  // landing page to unauthenticated visitors (page.js decides app-vs-marketing),
+  // so it must NOT be bounced to /login.
+  const isPublic = path === '/'
+
   if (!user) {
+    // Let unauthenticated visitors reach public routes; the session-refresh side
+    // effect above has already run, so we just pass the request through.
+    if (isPublic) return response
+
     const loginUrl = new URL('/login', request.url)
     // Preserve the full path + query so email deep links survive the round-trip.
     loginUrl.searchParams.set('next', path + request.nextUrl.search)
