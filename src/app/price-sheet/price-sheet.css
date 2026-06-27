@@ -177,8 +177,11 @@ body:has(.ps) { overflow-x: clip; }
 
 .ps .card.addon-card { border: 1.5px solid var(--brand-blue-100); background: var(--bg-surface); }
 .ps .card.addon-card .cn { color: var(--brand-blue-700); }
+.ps .card.addon-card .cf { align-items: center; }
 .ps .card.addon-card .cf .add { color: var(--neutral-600); }
+.ps .card .costwrap { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.15; }
 .ps .card.addon-card .cf .cost { color: var(--brand-orange-600); }
+.ps .card.addon-card .cf .costmo { color: var(--brand-teal-600); font-weight: 800; font-size: 8.5px; }
 .ps .card .disc { font-size: 8.5px; font-style: italic; color: var(--neutral-500); margin-top: 2px; }
 
 /* Notes row */

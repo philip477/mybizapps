@@ -30,8 +30,9 @@ const MODULES = [
 ]
 
 const fmt = (n) => '$' + n.toLocaleString('en-US')
-// Monthly equivalent of an annual price (billed annually), rounded to the dollar.
-const fmtMo = (n) => '$' + Math.round(n / 12).toLocaleString('en-US')
+// Month-to-month price: annual ÷ 12 plus a 10% surcharge (the premium for no
+// annual commitment). Rounded to the dollar.
+const fmtMo = (n) => '$' + Math.round((n / 12) * 1.1).toLocaleString('en-US')
 
 export default function PriceSheetPage() {
   return (
@@ -48,7 +49,7 @@ export default function PriceSheetPage() {
           </div>
           <div className="head-right">
             <div className="label">Price Sheet</div>
-            <div className="sub">Annual pricing · per business</div>
+            <div className="sub">Annual or month-to-month · per business</div>
             <div className="sub">www.mybizapps.app</div>
           </div>
         </div>
@@ -89,7 +90,10 @@ export default function PriceSheetPage() {
               <div className="cd">{m.desc}</div>
               <div className="cf">
                 <span className="add">+ Add</span>
-                <span className="cost">{fmt(MODULE_COST)}/yr</span>
+                <span className="costwrap">
+                  <span className="cost">{fmt(MODULE_COST)}/yr</span>
+                  <span className="costmo">{fmtMo(MODULE_COST)}/mo</span>
+                </span>
               </div>
               {m.disclaimer && <div className="disc">{m.disclaimer}</div>}
             </div>
@@ -101,13 +105,14 @@ export default function PriceSheetPage() {
             <div className="nt">How pricing works</div>
             Every plan starts with the <b>Base Platform</b> at {fmt(BASE_COST)}/yr (customer
             management, employee directory + management). Add any modules below at <b>{fmt(MODULE_COST)}/yr each</b>.
-            Add or remove modules anytime.
+            Pay annually, or go <b>month-to-month for 10% more</b>. Add or remove modules anytime.
           </div>
           <div className="note">
             <div className="nt">Example</div>
             Base Platform plus <b>Billing</b> and <b>Service Scheduling</b>:
             {' '}{fmt(BASE_COST)} + {fmt(MODULE_COST)} + {fmt(MODULE_COST)} =
-            {' '}<b>{fmt(BASE_COST + MODULE_COST * 2)}/yr</b>.
+            {' '}<b>{fmt(BASE_COST + MODULE_COST * 2)}/yr</b> (or {fmtMo(BASE_COST + MODULE_COST * 2)}/mo
+            {' '}month-to-month).
           </div>
         </div>
 
