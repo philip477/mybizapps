@@ -28,17 +28,10 @@ function BrandMark({ className = 'brand-mark' }) {
   )
 }
 
-function Wordmark() {
-  return (
-    <span className="wm"><span className="b">MyBiz</span><span className="t">Apps</span></span>
-  )
-}
-
 function BrandLockup() {
   return (
     <a className="brand-lockup" href="/">
-      <BrandMark />
-      <Wordmark />
+      <img src="/images/mybizapps-logo.png" alt="MyBizApps" style={{ height: '48px' }} />
     </a>
   )
 }
@@ -166,6 +159,7 @@ export default function MarketingPage() {
       <section className="hero">
         <div className="container hero-grid">
           <div>
+            <img src="/images/mybizapps-logo.png" alt="MyBizApps" style={{ height: '96px', marginBottom: '20px' }} />
             <div className="eyebrow">All-in-one software for small business</div>
             <h1>
               The apps your<br />

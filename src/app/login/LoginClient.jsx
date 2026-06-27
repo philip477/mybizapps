@@ -83,9 +83,11 @@ export default function LoginClient() {
     >
       <div style={{ width: '100%', maxWidth: 360 }}>
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <h1 style={{ fontSize: 32, fontWeight: 700, color: '#1a56a0', margin: 0 }}>
-            MyBizApps
-          </h1>
+          <img
+            src="/images/mybizapps-logo.png"
+            alt="MyBizApps"
+            style={{ width: '200px', margin: '0 auto 24px', display: 'block' }}
+          />
           <p style={{ color: '#5580a0', fontSize: 14, marginTop: 8 }}>
             Sign in to your account
           </p>
