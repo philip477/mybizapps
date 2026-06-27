@@ -220,12 +220,26 @@ body:has(.ps) { overflow-x: clip; }
 
 @page { size: letter; margin: 0; }
 @media print {
-  body:has(.ps) { background: var(--bg-surface); }
+  body:has(.ps) { background: #fff; overflow-x: clip; }
+
+  /* layout.js wraps every page in an inline-styled max-width:480px centered
+     flex column. On screen .ps escapes it with a full-bleed transform; in
+     print we instead FLATTEN that column so the sheet owns the whole page.
+     Inline styles outrank the stylesheet, so these need !important. Without
+     this the sheet prints as a narrow 480px strip — tall, and spread over
+     many pages. */
+  body:has(.ps) > div {
+    max-width: none !important;
+    min-height: 0 !important;
+    display: block !important;
+    margin: 0 !important;
+  }
+
   .ps {
-    width: auto;
-    margin-left: 0;
+    width: 100%;
+    margin: 0;
     transform: none;
-    background: var(--bg-surface);
+    background: #fff;
     min-height: 0;
   }
   .ps .toolbar { display: none; }
@@ -233,6 +247,9 @@ body:has(.ps) { overflow-x: clip; }
     margin: 0;
     box-shadow: none;
     width: 100%;
-    min-height: 0;
+    /* Fill the full page so the footer anchors to the bottom (via the
+       footer's margin-top:auto). Content fits well under one page, so this
+       fills rather than overflows. */
+    min-height: 10.9in;
   }
 }
