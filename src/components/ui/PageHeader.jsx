@@ -44,7 +44,7 @@ export default function PageHeader({ title, onBack }) {
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 12px 16px;
+          padding: 12px;
           background: #ffffff;
           border-bottom: 2px solid #1a56a0;
           position: sticky;

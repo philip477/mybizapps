@@ -74,7 +74,7 @@ export default function HomeClient({ user, facility, navItems = [] }) {
           display: 'flex',
           alignItems: 'center',
           gap: 14,
-          padding: '12px 16px',
+          padding: '12px',
           borderBottom: '2px solid #1a56a0',
         }}
       >
@@ -161,7 +161,7 @@ export default function HomeClient({ user, facility, navItems = [] }) {
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
           gap: 12,
-          padding: 16,
+          padding: 12,
         }}
       >
         {/* My Info — always first. */}
@@ -182,7 +182,7 @@ export default function HomeClient({ user, facility, navItems = [] }) {
       {navItems.length === 0 && (
         <div
           style={{
-            padding: '0 16px 16px',
+            padding: '0 12px 16px',
             color: '#5580a0',
             fontSize: 13,
             textAlign: 'center',

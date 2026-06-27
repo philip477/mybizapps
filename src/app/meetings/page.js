@@ -6,7 +6,7 @@ export default function Page() {
       <PageHeader title="Meetings" />
       <div
         style={{
-          padding: 40,
+          padding: '40px 12px',
           textAlign: 'center',
           color: '#5580a0',
           fontSize: 16,
