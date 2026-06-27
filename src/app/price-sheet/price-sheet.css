@@ -104,7 +104,7 @@ body:has(.ps) { overflow-x: clip; }
   justify-content: space-between;
   gap: 16px;
 }
-.ps .lockup img { height: 46px; width: auto; }
+.ps .lockup img { height: 66px; width: auto; }
 .ps .lockup .tag {
   font-family: var(--font-serif);
   font-style: italic;
@@ -144,6 +144,7 @@ body:has(.ps) { overflow-x: clip; }
 .ps .platform .price { margin-left: auto; text-align: right; white-space: nowrap; }
 .ps .platform .price .amt { font: 900 22px var(--font-sans); color: var(--brand-blue-700); }
 .ps .platform .price .per { font-size: 11px; color: var(--neutral-500); }
+.ps .platform .price .permo { font: 800 13px var(--font-sans); color: var(--brand-teal-600); margin-top: 2px; }
 
 /* Section headings */
 .ps .sec {

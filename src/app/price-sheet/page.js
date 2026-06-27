@@ -30,6 +30,8 @@ const MODULES = [
 ]
 
 const fmt = (n) => '$' + n.toLocaleString('en-US')
+// Monthly equivalent of an annual price (billed annually), rounded to the dollar.
+const fmtMo = (n) => '$' + Math.round(n / 12).toLocaleString('en-US')
 
 export default function PriceSheetPage() {
   return (
@@ -62,6 +64,7 @@ export default function PriceSheetPage() {
           <div className="price">
             <div className="amt">{fmt(BASE_COST)}</div>
             <div className="per">per year</div>
+            <div className="permo">{fmtMo(BASE_COST)}/mo</div>
           </div>
         </div>
 
