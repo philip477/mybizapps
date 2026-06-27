@@ -15,6 +15,7 @@ const MODULE_COST = 250
 const CORE = [
   { icon: '👥', name: 'Customer Management', desc: 'Every customer, contact, and job history in one searchable place.' },
   { icon: '📇', name: 'Employee Directory', desc: 'Who works here, their role, and how to reach them — drives access across your apps.' },
+  { icon: '📈', name: 'Management', desc: 'Dashboards and reporting for owners and managers.' },
 ]
 
 // Optional add-on modules, each priced per year.
@@ -26,7 +27,6 @@ const MODULES = [
   { icon: '📦', name: 'Manage Assets', desc: 'Track equipment and tools with maintenance history.' },
   { icon: '🤖', name: 'AI Office Helpers', desc: 'AI that drafts, summarizes, and automates office work.', disclaimer: '+ AI usage costs' },
   { icon: '📊', name: 'Accounting', desc: 'Track income and expenses; see where the money goes.' },
-  { icon: '📈', name: 'Management', desc: 'Dashboards and reporting for owners and managers.' },
 ]
 
 const fmt = (n) => '$' + n.toLocaleString('en-US')
@@ -57,7 +57,7 @@ export default function PriceSheetPage() {
           <div className="icon">⚙️</div>
           <div>
             <div className="name">Base Platform</div>
-            <div className="desc">Customer management and employee directory included — add any modules below to build the platform your business needs.</div>
+            <div className="desc">Customer management, employee directory, and management dashboards included — add any modules below to build the platform your business needs.</div>
           </div>
           <div className="price">
             <div className="amt">{fmt(BASE_COST)}</div>
@@ -97,7 +97,7 @@ export default function PriceSheetPage() {
           <div className="note">
             <div className="nt">How pricing works</div>
             Every plan starts with the <b>Base Platform</b> at {fmt(BASE_COST)}/yr (customer
-            management + employee directory). Add any modules below at <b>{fmt(MODULE_COST)}/yr each</b>.
+            management, employee directory + management). Add any modules below at <b>{fmt(MODULE_COST)}/yr each</b>.
             Add or remove modules anytime.
           </div>
           <div className="note">

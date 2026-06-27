@@ -156,7 +156,7 @@ body:has(.ps) { overflow-x: clip; }
 .ps .sec.addons { color: var(--brand-blue-700); }
 
 /* Card grids */
-.ps .grid-core { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.ps .grid-core { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .ps .grid-addons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 
 .ps .card {
