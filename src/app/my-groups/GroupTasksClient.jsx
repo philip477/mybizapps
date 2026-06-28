@@ -336,7 +336,7 @@ export default function GroupTasksClient({
       // The creator becomes a group admin so the group lands in their list.
       const { error: memErr } = await supabase
         .from('biz_group_members')
-        .insert({ group_id: data.id, user_id: myUserId, member_role: 'group_admin', is_admin: true })
+        .insert({ group_id: data.id, user_id: myUserId, member_role: 'leader', is_admin: true })
       if (memErr) { setGroupError(memErr.message); setGroupSaving(false); return }
       setGroups(prev => [...prev, data].sort((a, b) => (a.name || '').localeCompare(b.name || '')))
       setMemberships(prev => [...prev, { group_id: data.id, is_admin: true }])
@@ -464,10 +464,10 @@ export default function GroupTasksClient({
     const nextAdmin = !member.is_admin
     const { error } = await supabase
       .from('biz_group_members')
-      .update({ is_admin: nextAdmin, member_role: nextAdmin ? 'group_admin' : 'member' })
+      .update({ is_admin: nextAdmin, member_role: nextAdmin ? 'leader' : 'member' })
       .eq('id', member.id)
     if (error) { setMembersError(error.message); return }
-    setMembers(prev => prev.map(m => m.id === member.id ? { ...m, is_admin: nextAdmin, member_role: nextAdmin ? 'group_admin' : 'member' } : m))
+    setMembers(prev => prev.map(m => m.id === member.id ? { ...m, is_admin: nextAdmin, member_role: nextAdmin ? 'leader' : 'member' } : m))
     if (member.user_id === myUserId) {
       setMemberships(prev => prev.map(m => m.group_id === membersGroup.id ? { ...m, is_admin: nextAdmin } : m))
     }
