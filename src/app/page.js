@@ -24,9 +24,10 @@ export default async function HomePage() {
   if (!authUser) return <MarketingPage />
 
   // Auto-link pre-provisioned users (admin-created biz_users row with a NULL
-  // auth_id) to this auth identity before reading the profile. biz_users RLS is
-  // scoped to the caller's auth_id, so an unlinked row is invisible to this
-  // session and the lookup below would fall back to a minimal profile (no role
+  // auth_id) to this auth identity before reading the profile. biz_users RLS
+  // only exposes rows in the caller's own facility, which a brand-new user can't
+  // resolve yet (get_user_facility_id() needs a linked row), so the lookup below
+  // would fall back to a minimal profile (no role
   // or facility). link_auth_user is SECURITY DEFINER (bypasses RLS), idempotent,
   // and only fills a NULL auth_id matched by email. Best-effort: a missing DB
   // function must not break the home page.
