@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation'
 import { APP_VERSION } from '@/lib/version'
 import { supabase } from '@/lib/supabase'
 
-// Renders an app_icon that may be an emoji, an image URL, or empty.
+// Renders an app_icon that may be an emoji, an image URL, or empty. Sized to
+// sit inside a ~44px square on each list row.
 function AppIcon({ icon, fallback = '📦' }) {
   const isImageUrl = icon && (icon.startsWith('http') || icon.startsWith('/'))
   if (isImageUrl) {
@@ -12,45 +13,59 @@ function AppIcon({ icon, fallback = '📦' }) {
       <img
         src={icon}
         alt=""
-        style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8 }}
+        style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 6 }}
       />
     )
   }
-  return <span style={{ fontSize: 38, lineHeight: 1 }}>{icon || fallback}</span>
+  return <span style={{ fontSize: 30, lineHeight: 1 }}>{icon || fallback}</span>
 }
 
-function Tile({ icon, name, onClick }) {
+// A single tappable app row: icon square on the left, name, right chevron, with
+// a thin divider underneath. Mirrors the MyLTC Apps home list.
+function AppRow({ icon, name, onClick }) {
   return (
-    <button
+    <div
       onClick={onClick}
       style={{
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        padding: '16px 8px',
-        background: '#fff',
-        border: '1.5px solid #d0e0f4',
-        borderRadius: 12,
+        gap: 14,
+        padding: '8px 16px',
+        borderBottom: '1.5px solid #d0e0f4',
         cursor: 'pointer',
-        minHeight: 104,
-        fontFamily: 'inherit',
+        minHeight: 50,
+        transition: 'background 0.12s',
       }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = '#f0f6ff')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
     >
-      <AppIcon icon={icon} />
+      <div
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 6,
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+        }}
+      >
+        <AppIcon icon={icon} />
+      </div>
       <span
         style={{
-          fontSize: 13,
-          fontWeight: 600,
+          flex: 1,
+          minWidth: 0,
+          fontSize: 18,
+          fontWeight: 500,
           color: '#1a56a0',
-          textAlign: 'center',
-          lineHeight: 1.15,
         }}
       >
         {name}
       </span>
-    </button>
+      <span style={{ fontSize: 18, color: '#1a56a0', fontWeight: 'bold' }}>›</span>
+    </div>
   )
 }
 
@@ -155,42 +170,35 @@ export default function HomeClient({ user, facility, navItems = [] }) {
         </div>
       </div>
 
-      {/* Tile grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 12,
-          padding: 12,
-        }}
-      >
+      {/* App list */}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
         {/* My Info — always first. */}
-        <Tile icon="👤" name="My Info" onClick={() => router.push('/my-account')} />
+        <AppRow icon="👤" name="My Info" onClick={() => router.push('/my-account')} />
 
         {navItems
           .filter((app) => app.app_link !== '/my-account')
           .map((app) => (
-            <Tile
+            <AppRow
               key={app.id || app.app_link}
               icon={app.app_icon}
               name={app.app_name}
               onClick={() => openApp(app)}
             />
           ))}
-      </div>
 
-      {navItems.length === 0 && (
-        <div
-          style={{
-            padding: '0 12px 16px',
-            color: '#5580a0',
-            fontSize: 13,
-            textAlign: 'center',
-          }}
-        >
-          No apps have been configured for your facility yet.
-        </div>
-      )}
+        {navItems.length === 0 && (
+          <div
+            style={{
+              padding: '24px 16px',
+              color: '#5580a0',
+              fontSize: 13,
+              textAlign: 'center',
+            }}
+          >
+            No apps have been configured for your facility yet.
+          </div>
+        )}
+      </div>
     </div>
   )
 }

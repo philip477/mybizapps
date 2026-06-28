@@ -24,6 +24,13 @@ export default async function HomePage() {
     redirect(`/login?error=user_not_found&email=${encodeURIComponent(authUser.email)}`)
   }
 
+  // master_control operators get the Master Control dashboard, not the regular
+  // facility app launcher. (proxy.js already confines them to /master-control,
+  // /my-account and "/", so this is the only place "/" needs to branch.)
+  if (bizUser.user_role === 'master_control') {
+    redirect('/master-control')
+  }
+
   const fid = bizUser.facility_id
 
   // Facility (for the header logo + name). `facilities` has no biz_ prefix.
