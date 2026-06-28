@@ -129,6 +129,7 @@ export default function AssignAppsClient({
     const [moved] = list.splice(index, 1)
     list.splice(swap, 0, moved)
 
+    const prevPerms = perms
     setBusy(true)
     // Optimistic renumber.
     const next = { ...perms }
@@ -136,12 +137,18 @@ export default function AssignAppsClient({
     setPerms(next)
 
     try {
-      await Promise.all(
+      // supabase.update() resolves with { error } rather than throwing, so inspect
+      // each result — otherwise a denied/failed write would diverge silently.
+      const results = await Promise.all(
         list.map((a, i) =>
           supabase.from('biz_app_permission_mains').update({ app_order: i }).eq('id', next[a.id].id)
         )
       )
+      const failed = results.find((r) => r.error)
+      if (failed) throw failed.error
     } catch (err) {
+      // Revert the optimistic reorder so the UI matches the DB.
+      setPerms(prevPerms)
       showToast(err.message || 'Reorder failed', 'error')
     } finally {
       setBusy(false)

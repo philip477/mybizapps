@@ -185,7 +185,11 @@ export default function MyGroupsClient({
         .insert({ group_id: data.id, user_id: myUserId, member_role: 'leader', is_admin: true })
         .select('id, group_id, user_id, member_role, is_admin')
         .single()
-      if (memErr) { setGroupError(memErr.message); setGroupSaving(false); return }
+      if (memErr) {
+        // Roll back the orphaned group so it doesn't linger member-less.
+        await supabase.from('biz_groups').delete().eq('id', data.id)
+        setGroupError(memErr.message); setGroupSaving(false); return
+      }
       setGroups(prev => [...prev, data].sort((a, b) => (a.name || '').localeCompare(b.name || '')))
       setMembers(prev => [...prev, memRow])
       setGroupSaving(false)

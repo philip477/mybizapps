@@ -52,17 +52,18 @@ export async function POST(request) {
   }
 
   // --- Send the email -------------------------------------------------------
-  // TODO: Wire up Resend. Set RESEND_API_KEY in the environment, then:
-  //   import { Resend } from 'resend'
-  //   const resend = new Resend(process.env.RESEND_API_KEY)
-  //   await resend.emails.send({ from, to: recipient, subject, html })
-  // For now we log the payload so the flow is observable end-to-end.
-  console.log('[invoices/send] would email invoice', {
+  // Email delivery is gated on RESEND_API_KEY. Until it's configured (and the
+  // `resend` package installed) we record the send but do NOT claim an email
+  // went out — the response carries emailed:false + a warning so callers aren't
+  // misled. TODO when configured:
+  //   const { Resend } = await import('resend')
+  //   await new Resend(process.env.RESEND_API_KEY).emails.send({ from, to: recipient, subject, html })
+  const emailConfigured = !!process.env.RESEND_API_KEY
+  console.log('[invoices/send] record send', {
     invoice_number: invoice.invoice_number,
     doc_type: invoice.doc_type,
     to: recipient,
-    total: invoice.total,
-    items: (invoice.biz_invoice_items || []).length,
+    emailed: emailConfigured,
   })
 
   const sentAt = new Date().toISOString()
@@ -98,5 +99,16 @@ export async function POST(request) {
     )
   }
 
-  return Response.json({ ok: true, sent_to: recipient, sent_at: sentAt })
+  return Response.json({
+    ok: true,
+    sent_to: recipient,
+    sent_at: sentAt,
+    emailed: emailConfigured,
+    ...(emailConfigured
+      ? {}
+      : {
+          warning:
+            'Email delivery is not configured (RESEND_API_KEY missing). The invoice was marked sent and the send was recorded, but no email was delivered.',
+        }),
+  })
 }

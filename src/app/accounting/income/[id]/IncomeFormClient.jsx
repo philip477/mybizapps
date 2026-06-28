@@ -59,7 +59,7 @@ export default function IncomeFormClient({ income, isNew }) {
         notes: form.notes.trim() || null,
       }
       if (isNew) {
-        payload.facility_id = localStorage.getItem('biz_facility_id')
+        // facility_id is set server-side by a BEFORE INSERT trigger.
         const { error: err } = await supabase.from('biz_income').insert(payload)
         if (err) throw err
       } else {

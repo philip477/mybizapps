@@ -140,12 +140,20 @@ export default function InvoiceFormClient({ isNew, docType, invoice, items, cust
   // Generate a sequential document number scoped to the facility (via RLS).
   async function nextDocNumber(type = docType) {
     const prefix = type === 'quote' ? 'QT' : 'INV'
-    const { count } = await supabase
+    // Derive from the highest existing number (RLS scopes to the facility), not
+    // count(*) — count reuses a number after a delete and collides under the new
+    // (facility_id, invoice_number) unique index.
+    const { data } = await supabase
       .from('biz_invoices')
-      .select('id', { count: 'exact', head: true })
+      .select('invoice_number')
       .eq('doc_type', type)
-    const seq = 1001 + (count || 0)
-    return `${prefix}-${seq}`
+      .like('invoice_number', `${prefix}-%`)
+    let maxSeq = 1000
+    for (const r of data || []) {
+      const n = parseInt(String(r.invoice_number).split('-').pop(), 10)
+      if (Number.isFinite(n) && n > maxSeq) maxSeq = n
+    }
+    return `${prefix}-${maxSeq + 1}`
   }
 
   // Persists the invoice + line items. Returns the invoice id, or null on error
@@ -173,7 +181,7 @@ export default function InvoiceFormClient({ isNew, docType, invoice, items, cust
     let invoiceId = invoice?.id
 
     if (isNew) {
-      base.facility_id = localStorage.getItem('biz_facility_id')
+      // facility_id is set server-side by a BEFORE INSERT trigger.
       base.invoice_number = await nextDocNumber()
       const { data, error: err } = await supabase
         .from('biz_invoices')
@@ -185,11 +193,9 @@ export default function InvoiceFormClient({ isNew, docType, invoice, items, cust
     } else {
       const { error: err } = await supabase.from('biz_invoices').update(base).eq('id', invoiceId)
       if (err) throw err
-      // Replace line items wholesale — simplest reliable sync.
-      await supabase.from('biz_invoice_items').delete().eq('invoice_id', invoiceId)
     }
 
-    // Insert non-empty line items.
+    // Build the non-empty line-item rows.
     const rowsToInsert = lineItems
       .filter((it) => it.description.trim() || num(it.unit_price) || num(it.quantity) > 1)
       .map((it, i) => ({
@@ -200,9 +206,31 @@ export default function InvoiceFormClient({ isNew, docType, invoice, items, cust
         amount: num(it.quantity) * num(it.unit_price),
         sort_order: i,
       }))
-    if (rowsToInsert.length) {
-      const { error: itErr } = await supabase.from('biz_invoice_items').insert(rowsToInsert)
-      if (itErr) throw itErr
+
+    if (isNew) {
+      if (rowsToInsert.length) {
+        const { error: itErr } = await supabase.from('biz_invoice_items').insert(rowsToInsert)
+        if (itErr) throw itErr
+      }
+    } else {
+      // Replace items via separate (non-transactional) calls: capture the current
+      // rows first so a failed insert can be rolled back instead of losing them.
+      const { data: oldItems } = await supabase
+        .from('biz_invoice_items')
+        .select('description, quantity, unit_price, amount, sort_order')
+        .eq('invoice_id', invoiceId)
+      await supabase.from('biz_invoice_items').delete().eq('invoice_id', invoiceId)
+      if (rowsToInsert.length) {
+        const { error: itErr } = await supabase.from('biz_invoice_items').insert(rowsToInsert)
+        if (itErr) {
+          if (oldItems?.length) {
+            await supabase
+              .from('biz_invoice_items')
+              .insert(oldItems.map((it) => ({ ...it, invoice_id: invoiceId })))
+          }
+          throw itErr
+        }
+      }
     }
 
     return invoiceId
@@ -283,7 +311,6 @@ export default function InvoiceFormClient({ isNew, docType, invoice, items, cust
           total,
           notes: notes.trim() || null,
           terms: terms.trim() || null,
-          facility_id: localStorage.getItem('biz_facility_id'),
           invoice_number: await nextDocNumber('invoice'),
         })
         .select('id')

@@ -131,7 +131,11 @@ export default function CompanyFormClient({ company, isNew }) {
           const { error: permErr } = await supabase
             .from('biz_app_permission_mains')
             .insert(perms)
-          if (permErr) throw permErr
+          if (permErr) {
+            // Roll back the half-created company so the slug is free to retry.
+            await supabase.from('facilities').delete().eq('id', created.id)
+            throw permErr
+          }
         }
       } else {
         const { error: err } = await supabase

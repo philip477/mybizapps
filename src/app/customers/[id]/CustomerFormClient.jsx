@@ -53,8 +53,7 @@ export default function CustomerFormClient({ customer, isNew }) {
       )
 
       if (isNew) {
-        const facilityId = localStorage.getItem('biz_facility_id')
-        payload.facility_id = facilityId
+        // facility_id is set server-side by a BEFORE INSERT trigger.
         const { error: err } = await supabase.from('biz_customers').insert(payload)
         if (err) throw err
       } else {

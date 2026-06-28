@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation'
+import { getUser } from '@/lib/auth'
 import { createClient } from '@/lib/supabase-server'
 import ModulesClient from './ModulesClient'
 
@@ -6,6 +8,9 @@ import ModulesClient from './ModulesClient'
 // catalog is global (not facility-scoped); RLS lets any authenticated user read
 // and only is_master_control() write.
 export default async function Page() {
+  const user = await getUser()
+  if (!user || user.role !== 'master_control') redirect('/')
+
   const supabase = await createClient()
 
   const { data } = await supabase
