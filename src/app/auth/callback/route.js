@@ -34,7 +34,6 @@ function loginRedirect(origin, params) {
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = safeNext(searchParams.get('next'))
 
   // The provider can redirect back with an error instead of a code (e.g. the
   // user denied consent).
@@ -47,9 +46,18 @@ export async function GET(request) {
 
   const cookieStore = await cookies()
 
+  // Post-login destination: the login page stashes it in mba_oauth_next so the
+  // OAuth redirectTo can stay query-free (see LoginClient). Fall back to a
+  // legacy ?next= and finally to '/'.
+  const rawNext =
+    cookieStore.get('mba_oauth_next')?.value || searchParams.get('next') || ''
+  const next = safeNext(rawNext ? decodeURIComponent(rawNext) : '/')
+
   // The happy-path response. Supabase writes the session cookies onto THIS
   // object via setAll below, so they ride along with the redirect to `next`.
   const response = NextResponse.redirect(new URL(next, origin))
+  // The destination cookie has done its job — expire it.
+  response.cookies.set('mba_oauth_next', '', { path: '/', maxAge: 0 })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

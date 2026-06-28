@@ -69,14 +69,18 @@ export default function LoginClient() {
     setError(null)
     setGoogleLoading(true)
     try {
+      // Keep redirectTo free of query params: Supabase matches the WHOLE
+      // redirect URL against the allowlist, and a `?next=` breaks even the
+      // `/**` wildcard, making it fall back to the Site URL (dumping the user
+      // on `/` with an unused ?code). Stash the destination in a short-lived
+      // cookie that the /auth/callback route reads instead.
+      document.cookie = `mba_oauth_next=${encodeURIComponent(
+        nextPage
+      )}; path=/; max-age=600; samesite=lax`
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          // Supabase bounces the user to Google, then back to this route with a
-          // one-time code. Carry ?next= through so the deep link survives.
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
-            nextPage
-          )}`,
+          redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: { prompt: 'select_account' },
         },
       })
