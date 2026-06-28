@@ -11,27 +11,28 @@ export default async function HomePage() {
   const supabase = await createClient()
 
   const { data: { user: authUser } } = await supabase.auth.getUser()
+  // The marketing landing page is shown ONLY when there is no auth session at
+  // all. Anyone holding a valid session gets the app home below — even if their
+  // biz_users profile lookup fails (missing row, RLS, transient error). We must
+  // never bounce an authenticated user back to marketing/login from here.
   if (!authUser) return <MarketingPage />
 
-  // App-level profile.
+  // App-level profile. A null result is tolerated: we fall back to a minimal
+  // profile derived from the auth user so the app home still renders.
   const { data: bizUser } = await supabase
     .from('biz_users')
     .select('*')
     .ilike('email', authUser.email)
     .maybeSingle()
 
-  if (!bizUser) {
-    redirect(`/login?error=user_not_found&email=${encodeURIComponent(authUser.email)}`)
-  }
-
   // master_control operators get the Master Control dashboard, not the regular
   // facility app launcher. (proxy.js already confines them to /master-control,
   // /my-account and "/", so this is the only place "/" needs to branch.)
-  if (bizUser.user_role === 'master_control') {
+  if (bizUser?.user_role === 'master_control') {
     redirect('/master-control')
   }
 
-  const fid = bizUser.facility_id
+  const fid = bizUser?.facility_id ?? null
 
   // Facility (for the header logo + name). `facilities` has no biz_ prefix.
   const { data: facility } = fid
@@ -70,12 +71,12 @@ export default async function HomePage() {
   }
 
   const user = {
-    id: bizUser.id,
-    email: bizUser.email,
-    full_name: `${bizUser.first_name || ''} ${bizUser.last_name || ''}`.trim(),
-    first_name: bizUser.first_name,
-    last_name: bizUser.last_name,
-    role: bizUser.user_role,
+    id: bizUser?.id ?? authUser.id,
+    email: bizUser?.email ?? authUser.email,
+    full_name: `${bizUser?.first_name || ''} ${bizUser?.last_name || ''}`.trim(),
+    first_name: bizUser?.first_name ?? null,
+    last_name: bizUser?.last_name ?? null,
+    role: bizUser?.user_role ?? 'user',
     facility_id: fid,
   }
 
