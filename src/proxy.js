@@ -75,7 +75,8 @@ export async function proxy(request) {
   const { data: me } = await supabase
     .from('biz_users')
     .select('user_role')
-    .ilike('email', user.email)
+    // Escape ILIKE wildcards so the email is matched literally, not as a pattern.
+    .ilike('email', (user.email || '').replace(/[\\%_]/g, '\\$&'))
     .maybeSingle()
   const role = me?.user_role ?? null
 

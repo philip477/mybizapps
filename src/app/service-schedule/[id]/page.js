@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import ServiceCallFormClient from './ServiceCallFormClient'
 
@@ -27,6 +28,7 @@ export default async function Page({ params }) {
     const { data } = await supabase.from('biz_service_calls').select('*').eq('id', id).maybeSingle()
     call = data
   }
+  if (!isNew && !call) notFound()
 
   const [{ data: customers }, { data: serviceTypes }, { data: techs }] = await Promise.all([
     customersPromise,

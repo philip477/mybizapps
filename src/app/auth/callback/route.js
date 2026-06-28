@@ -112,7 +112,8 @@ export async function GET(request) {
   const { data: bizUser } = await supabase
     .from('biz_users')
     .select('id')
-    .ilike('email', user?.email || '')
+    // Escape ILIKE wildcards so the email matches literally, not as a pattern.
+    .ilike('email', (user?.email || '').replace(/[\\%_]/g, '\\$&'))
     .maybeSingle()
 
   if (!bizUser) {

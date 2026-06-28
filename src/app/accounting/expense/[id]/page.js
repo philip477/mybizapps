@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import ExpenseFormClient from './ExpenseFormClient'
 
@@ -19,6 +20,7 @@ export default async function Page({ params }) {
     const { data } = await supabase.from('biz_expenses').select('*').eq('id', id).maybeSingle()
     expense = data
   }
+  if (!isNew && !expense) notFound()
 
   const { data: categories } = await categoriesPromise
 

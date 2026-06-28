@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import CustomerFormClient from './CustomerFormClient'
 
@@ -17,6 +18,8 @@ export default async function Page({ params }) {
       .maybeSingle()
     customer = data
   }
+  // A missing/cross-tenant id must 404, not render a blank "edit" form.
+  if (!isNew && !customer) notFound()
 
   return <CustomerFormClient customer={customer} isNew={isNew} />
 }

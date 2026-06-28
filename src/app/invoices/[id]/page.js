@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import { getUser } from '@/lib/auth'
 import InvoiceFormClient from './InvoiceFormClient'
@@ -51,6 +52,8 @@ export default async function Page({ params, searchParams }) {
         .order('sort_order', { ascending: true }),
     ])
     invoice = inv
+    // A missing/cross-tenant id must 404, not render a blank "edit" form.
+    if (!invoice) notFound()
     items = lineItems || []
   }
 

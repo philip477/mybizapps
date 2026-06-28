@@ -1,12 +1,5 @@
 import { createClient } from './supabase-server'
 
-// getSession — returns the raw Supabase session (no DB join).
-export async function getSession() {
-  const supabase = await createClient()
-  const { data: { session }, error } = await supabase.auth.getSession()
-  return { session, error }
-}
-
 // getUser — validates the token server-side, then joins biz_users to return
 // the app-level profile (role, facility, name). Returns null when the visitor
 // isn't authenticated or isn't provisioned in biz_users.
@@ -21,7 +14,9 @@ export async function getUser() {
   const { data: bizUser } = await supabase
     .from('biz_users')
     .select('*')
-    .ilike('email', user.email)
+    // Escape ILIKE wildcards ('_' and '%' are legal in email local-parts) so the
+    // email matches literally, not as a pattern, against the facility-scoped rows.
+    .ilike('email', (user.email || '').replace(/[\\%_]/g, '\\$&'))
     .maybeSingle()
 
   if (!bizUser) {

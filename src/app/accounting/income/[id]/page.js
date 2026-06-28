@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import IncomeFormClient from './IncomeFormClient'
 
@@ -12,6 +13,7 @@ export default async function Page({ params }) {
     const { data } = await supabase.from('biz_income').select('*').eq('id', id).maybeSingle()
     income = data
   }
+  if (!isNew && !income) notFound()
 
   return <IncomeFormClient income={income} isNew={isNew} />
 }

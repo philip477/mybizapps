@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import { getUser } from '@/lib/auth'
 import ServiceFormClient from './ServiceFormClient'
@@ -24,6 +24,7 @@ export default async function Page({ params }) {
       .maybeSingle()
     service = data
   }
+  if (!isNew && !service) notFound()
 
   return <ServiceFormClient service={service} isNew={isNew} />
 }

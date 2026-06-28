@@ -46,7 +46,8 @@ export default async function HomePage() {
   const { data: bizUser } = await supabase
     .from('biz_users')
     .select('*')
-    .ilike('email', authUser.email)
+    // Escape ILIKE wildcards so the email matches literally, not as a pattern.
+    .ilike('email', (authUser.email || '').replace(/[\\%_]/g, '\\$&'))
     .maybeSingle()
 
   // master_control operators get the Master Control dashboard, not the regular
