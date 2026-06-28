@@ -22,6 +22,9 @@ export default async function Page() {
   const supabase = await createClient()
   const fid = user.facility_id
 
+  // The fields the client needs to render each app tile.
+  const APP_FIELDS = 'id, app_name, app_icon, app_icon_emoji, app_link, app_type, active'
+
   const [{ data: appMeta }, { data: perms }, { data: config }, { data: groups }] =
     await Promise.all([
       supabase
@@ -34,10 +37,12 @@ export default async function Page() {
       fid
         ? supabase
             .from('biz_app_permission_mains')
-            .select('app_order, biz_apps(id, app_name, app_icon, app_icon_emoji, app_link, app_type)')
+            .select(`app_order, biz_apps(${APP_FIELDS})`)
             .eq('facility_id', fid)
             .order('app_order')
         : Promise.resolve({ data: [] }),
+      // ALL config rows for the facility, loaded independently of the app list
+      // so every enabled app shows up here whether or not it has config yet.
       fid
         ? supabase
             .from('biz_app_config')
@@ -54,11 +59,27 @@ export default async function Page() {
         : Promise.resolve({ data: [] }),
     ])
 
-  // Flatten the permission join down to the apps themselves, dropping inactive
-  // apps and the App Config tool itself (no point configuring the configurator).
-  const apps = (perms || [])
+  // Resolve the facility's enabled apps exactly the way the home launcher does:
+  // flatten the permission join and keep globally-active apps. An app appears
+  // here even with zero config keys — config is merged in client-side.
+  let apps = (perms || [])
     .map((p) => (Array.isArray(p.biz_apps) ? p.biz_apps[0] : p.biz_apps))
-    .filter((a) => a && a.app_link !== '/admin/app-config')
+    .filter((a) => a && a.active)
+
+  // Fresh-facility fallback: with no permission rows yet, the home launcher
+  // shows every active app, so App Config must too — otherwise apps the user
+  // can clearly launch would have nowhere to be configured.
+  if (apps.length === 0 && fid) {
+    const { data: allApps } = await supabase
+      .from('biz_apps')
+      .select(APP_FIELDS)
+      .eq('active', true)
+      .order('app_name')
+    apps = allApps || []
+  }
+
+  // Drop the App Config tool itself — no point configuring the configurator.
+  apps = apps.filter((a) => a.app_link !== '/admin/app-config')
 
   return (
     <AppConfigClient
