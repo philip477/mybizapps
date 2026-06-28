@@ -60,10 +60,9 @@ export default function ServiceCallFormClient({ isNew, call, customers = [], ser
     scheduled_time: call?.scheduled_time ? call.scheduled_time.slice(0, 5) : '',
     duration_minutes: call?.duration_minutes ?? '',
     status: call?.status || 'scheduled',
-    // recurrence and notes have no columns in biz_service_calls yet — kept in
-    // the UI per spec but not persisted (see handleSave).
+    // recurrence has no column yet (UI-only); notes maps to the tech_notes column.
     recurrence: 'one-time',
-    notes: '',
+    notes: call?.tech_notes || '',
   })
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -74,8 +73,9 @@ export default function ServiceCallFormClient({ isNew, call, customers = [], ser
     setForm((f) => ({ ...f, [key]: value }))
   }
 
-  // Only columns that exist on biz_service_calls are written here. recurrence
-  // and notes are intentionally excluded (no DB columns).
+  // Only columns that exist on biz_service_calls are written. recurrence has no
+  // column yet (UI-only). facility_id is set server-side by a BEFORE INSERT
+  // trigger, so it's intentionally omitted from the payload.
   function buildPayload() {
     return {
       title: form.title.trim() || null,
@@ -86,6 +86,7 @@ export default function ServiceCallFormClient({ isNew, call, customers = [], ser
       scheduled_time: form.scheduled_time || null,
       duration_minutes: form.duration_minutes === '' ? null : Number(form.duration_minutes),
       status: form.status,
+      tech_notes: form.notes.trim() || null,
     }
   }
 
@@ -103,7 +104,7 @@ export default function ServiceCallFormClient({ isNew, call, customers = [], ser
     try {
       const payload = buildPayload()
       if (isNew) {
-        payload.facility_id = localStorage.getItem('biz_facility_id')
+        // facility_id is set server-side by a BEFORE INSERT trigger.
         const { error: err } = await supabase.from('biz_service_calls').insert(payload)
         if (err) throw err
       } else {
@@ -238,7 +239,7 @@ export default function ServiceCallFormClient({ isNew, call, customers = [], ser
             {techs.map((t) => {
               const lbl = techLabel(t)
               return (
-                <option key={t.id} value={lbl}>
+                <option key={t.id} value={t.id}>
                   {lbl}
                 </option>
               )

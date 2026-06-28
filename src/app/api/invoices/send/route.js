@@ -43,6 +43,13 @@ export async function POST(request) {
 
   const customer = invoice.biz_customers
   const recipient = customer?.email || null
+  // sent_to is NOT NULL — refuse rather than fail the insert downstream.
+  if (!recipient) {
+    return Response.json(
+      { error: 'This customer has no email address on file.' },
+      { status: 400 }
+    )
+  }
 
   // --- Send the email -------------------------------------------------------
   // TODO: Wire up Resend. Set RESEND_API_KEY in the environment, then:
@@ -69,12 +76,18 @@ export async function POST(request) {
     return Response.json({ error: updErr.message }, { status: 500 })
   }
 
-  // Record the send.
+  // Record the send. sent_by is a biz_users.id FK — not the auth uid or email.
+  const { data: bizUser } = await supabase
+    .from('biz_users')
+    .select('id')
+    .eq('auth_id', user.id)
+    .maybeSingle()
   const { error: sendErr } = await supabase.from('biz_invoice_sends').insert({
     invoice_id: invoiceId,
     sent_at: sentAt,
     sent_to: recipient,
-    sent_by: user.email,
+    sent_by: bizUser?.id ?? null,
+    send_method: 'email',
   })
   if (sendErr) {
     // The invoice is already marked sent; surface the logging failure but don't
