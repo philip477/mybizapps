@@ -2,6 +2,12 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase-server'
 import HomeClient from './HomeClient'
 import MarketingPage from './MarketingPage'
+import {
+  CORE_APPS,
+  CORE_ORDER,
+  ALWAYS_VISIBLE_LINKS,
+  GROUP_BASED_BY_LINK,
+} from '@/lib/homeApps'
 
 // Home — server component. "/" is public: authenticated users get the app home
 // (HomeClient), while unauthenticated visitors get the marketing landing page.
@@ -61,31 +67,103 @@ export default async function HomePage() {
         .maybeSingle()
     : { data: null }
 
-  // Nav items: the facility's configured app set (biz_app_permission_mains
-  // joined to biz_apps), ordered by app_order. Falls back to ALL active
-  // biz_apps when no permission_mains exist yet (fresh facility).
-  const APP_SELECT = 'id, app_name, app_icon, app_icon_emoji, app_link, active'
-  let navItems = []
+  const role = bizUser?.user_role ?? 'user'
+  const isSuper = role === 'super_user'
+
+  // The home menu follows the "My Apps" pattern (see src/lib/homeApps.js): core
+  // apps show for everyone, group-based apps only for users in the app's
+  // configured access group, and super_users see everything. We load four
+  // things in parallel:
+  //   perms        — the facility's assigned apps (Assign Company Apps), ordered
+  //   memberships  — the caller's biz_group ids (for group gating)
+  //   accessCfg    — each app's `*_access_group` value (app_id → group_id)
+  //   allActive    — the full active catalog (fallback + core-app metadata)
+  const APP_SELECT = 'id, app_name, app_icon, app_icon_emoji, app_link, app_type, active'
+  let coreApps = []
+  let groupApps = []
 
   if (fid) {
-    const { data: perms } = await supabase
-      .from('biz_app_permission_mains')
-      .select(`app_order, biz_apps(${APP_SELECT})`)
-      .eq('facility_id', fid)
-      .order('app_order')
+    const [{ data: perms }, { data: memberships }, { data: accessCfg }, { data: allActive }] =
+      await Promise.all([
+        supabase
+          .from('biz_app_permission_mains')
+          .select(`app_order, biz_apps(${APP_SELECT})`)
+          .eq('facility_id', fid)
+          .order('app_order'),
+        bizUser?.id
+          ? supabase.from('biz_group_members').select('group_id').eq('user_id', bizUser.id)
+          : Promise.resolve({ data: [] }),
+        supabase
+          .from('biz_app_config')
+          .select('app_id, config_key, config_value')
+          .eq('facility_id', fid)
+          .ilike('config_key', '%access_group%'),
+        supabase
+          .from('biz_apps')
+          .select(APP_SELECT)
+          .eq('active', true)
+          .eq('app_type', 'User App')
+          .order('app_name'),
+      ])
 
-    navItems = (perms || [])
+    const userGroupIds = new Set((memberships || []).map((m) => m.group_id))
+
+    // app_id → access-group id (only when a group is actually set).
+    const accessGroupByApp = {}
+    for (const c of accessCfg || []) {
+      if (c.config_value) accessGroupByApp[c.app_id] = c.config_value
+    }
+
+    // The facility's enabled apps (assigned set, or the whole active catalog on
+    // a fresh facility with no permission rows yet).
+    const catalog = allActive || []
+    const catalogByLink = {}
+    for (const a of catalog) catalogByLink[a.app_link] = a
+
+    let universe = (perms || [])
       .map((p) => (Array.isArray(p.biz_apps) ? p.biz_apps[0] : p.biz_apps))
-      .filter((a) => a && a.active)
-  }
+      .filter((a) => a && a.active && (!a.app_type || a.app_type === 'User App'))
+    if (universe.length === 0) universe = catalog
 
-  if (navItems.length === 0) {
-    const { data: allApps } = await supabase
-      .from('biz_apps')
-      .select(APP_SELECT)
-      .eq('active', true)
-      .order('app_name')
-    navItems = allApps || []
+    // Core apps are fundamental — inject any that the facility hasn't explicitly
+    // assigned, pulling real metadata from the catalog when present.
+    const seen = new Set(universe.map((a) => a.app_link))
+    for (const core of CORE_APPS) {
+      if (seen.has(core.app_link)) continue
+      universe.push(
+        catalogByLink[core.app_link] || {
+          id: core.app_link,
+          app_name: core.app_name,
+          app_link: core.app_link,
+          app_icon: null,
+          app_icon_emoji: core.emoji,
+          active: true,
+        },
+      )
+      seen.add(core.app_link)
+    }
+
+    // Split into the two tiers, filtering group-based apps by membership.
+    for (const app of universe) {
+      if (ALWAYS_VISIBLE_LINKS.has(app.app_link)) {
+        coreApps.push(app)
+        continue
+      }
+      const gb = GROUP_BASED_BY_LINK[app.app_link]
+      if (gb) {
+        const grp = accessGroupByApp[app.id]
+        if (isSuper || (grp && userGroupIds.has(grp))) groupApps.push(app)
+        continue
+      }
+      // Unknown app — never hide it. Show alongside the group-based tier.
+      groupApps.push(app)
+    }
+
+    // Order core apps by the canonical CORE_APPS order; keep the assigned order
+    // (app_order) for everything else.
+    coreApps.sort(
+      (a, b) => (CORE_ORDER[a.app_link] ?? 99) - (CORE_ORDER[b.app_link] ?? 99),
+    )
   }
 
   const user = {
@@ -94,9 +172,11 @@ export default async function HomePage() {
     full_name: `${bizUser?.first_name || ''} ${bizUser?.last_name || ''}`.trim(),
     first_name: bizUser?.first_name ?? null,
     last_name: bizUser?.last_name ?? null,
-    role: bizUser?.user_role ?? 'user',
+    role,
     facility_id: fid,
   }
 
-  return <HomeClient user={user} facility={facility} navItems={navItems} />
+  return (
+    <HomeClient user={user} facility={facility} coreApps={coreApps} groupApps={groupApps} />
+  )
 }

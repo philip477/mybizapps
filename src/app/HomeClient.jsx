@@ -69,7 +69,25 @@ function AppRow({ icon, fallback, name, onClick }) {
   )
 }
 
-export default function HomeClient({ user, facility, navItems = [] }) {
+// A section label that separates the core apps from the group-based ones.
+function SectionLabel({ children }) {
+  return (
+    <div
+      style={{
+        padding: '14px 16px 6px',
+        fontSize: 12,
+        fontWeight: 700,
+        color: '#5580a0',
+        textTransform: 'uppercase',
+        letterSpacing: 0.6,
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+export default function HomeClient({ user, facility, coreApps = [], groupApps = [] }) {
   const router = useRouter()
 
   async function handleLogout() {
@@ -80,6 +98,8 @@ export default function HomeClient({ user, facility, navItems = [] }) {
   function openApp(app) {
     if (app.app_link) router.push(app.app_link)
   }
+
+  const hasAny = coreApps.length > 0 || groupApps.length > 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -170,24 +190,35 @@ export default function HomeClient({ user, facility, navItems = [] }) {
         </div>
       </div>
 
-      {/* App list */}
+      {/* App list — core apps always show; group-based apps appear only when
+          the user's group has access (filtering happens server-side). */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        {/* My Info — always first. */}
-        <AppRow icon="👤" name="My Info" onClick={() => router.push('/my-account')} />
+        {coreApps.map((app) => (
+          <AppRow
+            key={app.id || app.app_link}
+            icon={app.app_icon}
+            fallback={app.app_icon_emoji || '📦'}
+            name={app.app_name}
+            onClick={() => openApp(app)}
+          />
+        ))}
 
-        {navItems
-          .filter((app) => app.app_link !== '/my-account')
-          .map((app) => (
-            <AppRow
-              key={app.id || app.app_link}
-              icon={app.app_icon}
-              fallback={app.app_icon_emoji || '📦'}
-              name={app.app_name}
-              onClick={() => openApp(app)}
-            />
-          ))}
+        {groupApps.length > 0 && (
+          <>
+            <SectionLabel>Your Apps</SectionLabel>
+            {groupApps.map((app) => (
+              <AppRow
+                key={app.id || app.app_link}
+                icon={app.app_icon}
+                fallback={app.app_icon_emoji || '📦'}
+                name={app.app_name}
+                onClick={() => openApp(app)}
+              />
+            ))}
+          </>
+        )}
 
-        {navItems.length === 0 && (
+        {!hasAny && (
           <div
             style={{
               padding: '24px 16px',

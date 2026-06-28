@@ -13,15 +13,33 @@
 //   'toggle' — an on/off boolean, stored as the string 'true' / 'false'.
 //   'text'   — a free-text value.
 //
-// There are NO templates defined yet. As real config needs land, add an entry
-// keyed by the app's app_link and its field(s) will appear in App Config — e.g.
+// The group-gating config: every group-based app (see src/lib/homeApps.js) gets
+// an `*_access_group` field here so a super_user can name the biz_group allowed
+// to see that app on the home menu. This is the only thing that reveals a
+// group-based app to a regular user — there is no role bypass — so naming a
+// group here is how access is granted. Built from the shared GROUP_BASED_APPS
+// list so the keys the super_user edits match the ones the home loader reads.
+//
+// Add further per-app fields by appending to the entry for that app_link — e.g.
 //   '/tickets': [
-//     { key: 'tickets_admin_group', label: 'Admin Group', type: 'group',
-//       help: 'Members of this group administer Tickets.' },
 //     { key: 'tickets_auto_close', label: 'Auto-close resolved tickets',
 //       type: 'toggle' },
 //   ],
-export const APP_CONFIG_TEMPLATES = {}
+import { GROUP_BASED_APPS } from '@/lib/homeApps'
+
+export const APP_CONFIG_TEMPLATES = Object.fromEntries(
+  GROUP_BASED_APPS.map((a) => [
+    a.app_link,
+    [
+      {
+        key: a.config_key,
+        label: 'Access Group',
+        type: 'group',
+        help: `Only members of this group see ${a.app_name} on their home menu.`,
+      },
+    ],
+  ]),
+)
 
 // The template (array of field descriptors) for an app, or null if the app has
 // no predefined config.
