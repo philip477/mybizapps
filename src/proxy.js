@@ -39,6 +39,24 @@ export async function proxy(request) {
   const isPublic = path === '/' || path === '/price-sheet'
 
   if (!user) {
+    // OAuth resilience: the provider should land the user on /auth/callback,
+    // but if Supabase's Redirect-URLs allowlist doesn't match (it then silently
+    // falls back to the Site URL), they arrive on a normal route — typically "/"
+    // — still carrying the one-time ?code, and nothing ever exchanges it (the
+    // user is stuck on the marketing page). Forward any such stray code to the
+    // callback so it always gets exchanged for a session. Scoped to
+    // unauthenticated requests so it can't hijack app routes that use ?code.
+    // (/auth/* is excluded from this proxy's matcher, so the real callback is
+    // never double-handled.) This mirrors the code-exchange guard in the
+    // myltcapps middleware.
+    const oauthCode = request.nextUrl.searchParams.get('code')
+    if (oauthCode) {
+      const callbackUrl = new URL('/auth/callback', request.url)
+      // Carry the whole query (code + any provider error/next) to the callback.
+      callbackUrl.search = request.nextUrl.search
+      return NextResponse.redirect(callbackUrl)
+    }
+
     // Let unauthenticated visitors reach public routes; the session-refresh side
     // effect above has already run, so we just pass the request through.
     if (isPublic) return response
