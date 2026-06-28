@@ -8,6 +8,9 @@ import { supabase } from '@/lib/supabase'
 function safeNext(raw) {
   if (!raw || typeof raw !== 'string') return '/'
   if (!raw.startsWith('/') || raw.startsWith('//')) return '/'
+  // WHATWG URL parsing normalizes '\' to '/', so '/\evil.com' would escape the
+  // origin just like '//evil.com'. Reject backslashes and control chars.
+  if (/[\\\x00-\x1f]/.test(raw)) return '/'
   return raw
 }
 
