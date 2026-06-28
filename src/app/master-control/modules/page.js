@@ -13,11 +13,26 @@ export default async function Page() {
 
   const supabase = await createClient()
 
-  const { data } = await supabase
-    .from('biz_modules')
-    .select('id, name, slug, description, icon, price_yearly, is_base, active, sort_order')
-    .order('is_base', { ascending: false })
-    .order('sort_order', { ascending: true })
+  // Pull the Modules app's own meta (icon + name) for the header alongside the
+  // module catalog.
+  const [{ data: appMeta }, { data }] = await Promise.all([
+    supabase
+      .from('biz_apps')
+      .select('app_name, app_icon, app_icon_emoji')
+      .eq('app_link', '/master-control/modules')
+      .maybeSingle(),
+    supabase
+      .from('biz_modules')
+      .select('id, name, slug, description, icon, price_yearly, is_base, active, sort_order')
+      .order('is_base', { ascending: false })
+      .order('sort_order', { ascending: true }),
+  ])
 
-  return <ModulesClient initialModules={data || []} />
+  return (
+    <ModulesClient
+      initialModules={data || []}
+      appIcon={appMeta?.app_icon || appMeta?.app_icon_emoji || '📦'}
+      appName={appMeta?.app_name || 'Modules'}
+    />
+  )
 }
