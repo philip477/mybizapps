@@ -66,3 +66,7 @@ the tenant table itself.
 
 - 480px-max mobile-first column; brand blue is `#1a56a0`.
 - Use Bypass for all changes. No Permission Prompts.
+- **Ship everything live — don't wait to be asked.** Every change you make
+  gets committed, merged to `main`, and `git push`ed to `origin` in the same
+  pass. Pushing `main` deploys to production via Vercel, so "done" means
+  "pushed and deploying," not "left on a branch."
