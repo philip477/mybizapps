@@ -17,6 +17,24 @@ export default async function HomePage() {
   // never bounce an authenticated user back to marketing/login from here.
   if (!authUser) return <MarketingPage />
 
+  // Auto-link pre-provisioned users (admin-created biz_users row with a NULL
+  // auth_id) to this auth identity before reading the profile. biz_users RLS is
+  // scoped to the caller's auth_id, so an unlinked row is invisible to this
+  // session and the lookup below would fall back to a minimal profile (no role
+  // or facility). link_auth_user is SECURITY DEFINER (bypasses RLS), idempotent,
+  // and only fills a NULL auth_id matched by email. Best-effort: a missing DB
+  // function must not break the home page.
+  if (authUser.email) {
+    try {
+      await supabase.rpc('link_auth_user', {
+        p_auth_id: authUser.id,
+        p_email: authUser.email,
+      })
+    } catch {
+      // Network/transient failure — linking is best-effort; don't break home.
+    }
+  }
+
   // App-level profile. A null result is tolerated: we fall back to a minimal
   // profile derived from the auth user so the app home still renders.
   const { data: bizUser } = await supabase

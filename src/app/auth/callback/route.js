@@ -87,6 +87,25 @@ export async function GET(request) {
     data: { user },
   } = await supabase.auth.getUser()
 
+  // Auto-link pre-provisioned users: an admin may have created the biz_users
+  // row (with role + facility) before this person ever signed in, leaving
+  // auth_id NULL. Claim that row for this auth identity BEFORE the existence
+  // check below — biz_users RLS is scoped to the caller's auth_id, so until the
+  // row is linked the email lookup can't see it and the user reads as "not
+  // registered". link_auth_user is SECURITY DEFINER (bypasses RLS), idempotent,
+  // and only fills a NULL auth_id matched by email. Best-effort: if the DB
+  // function isn't present yet we don't block login.
+  if (user?.email) {
+    try {
+      await supabase.rpc('link_auth_user', {
+        p_auth_id: user.id,
+        p_email: user.email,
+      })
+    } catch {
+      // Network/transient failure — linking is best-effort; don't block login.
+    }
+  }
+
   const { data: bizUser } = await supabase
     .from('biz_users')
     .select('id')
