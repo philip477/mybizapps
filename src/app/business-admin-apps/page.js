@@ -15,6 +15,7 @@ export const dynamic = 'force-dynamic'
 const FALLBACK_ADMIN_APPS = [
   { id: 'app-config', app_name: 'App Config', app_link: '/admin/app-config', app_icon: '⚙️' },
   { id: 'assign-apps', app_name: 'Assign Company Apps', app_link: '/admin/assign-apps', app_icon: '🧩' },
+  { id: 'services', app_name: 'Manage Services', app_link: '/admin/services', app_icon: '🛠️' },
 ]
 
 export default async function Page() {

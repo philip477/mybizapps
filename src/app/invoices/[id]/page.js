@@ -30,6 +30,15 @@ export default async function Page({ params, searchParams }) {
         .maybeSingle()
     : Promise.resolve({ data: null })
 
+  // Active service catalog — powers the "Add from catalog" line-item picker.
+  const servicesPromise = supabase
+    .from('biz_service_catalog')
+    .select('id, name, description, pricing_type, flat_rate, hourly_rate, estimated_hours, category')
+    .eq('active', true)
+    .order('category', { ascending: true, nullsFirst: false })
+    .order('sort_order', { ascending: true })
+    .order('name', { ascending: true })
+
   let invoice = null
   let items = []
   if (!isNew) {
@@ -45,9 +54,10 @@ export default async function Page({ params, searchParams }) {
     items = lineItems || []
   }
 
-  const [{ data: customers }, { data: facility }] = await Promise.all([
+  const [{ data: customers }, { data: facility }, { data: services }] = await Promise.all([
     customersPromise,
     facilityPromise,
+    servicesPromise,
   ])
 
   return (
@@ -58,6 +68,7 @@ export default async function Page({ params, searchParams }) {
       items={items}
       customers={customers || []}
       facility={facility}
+      services={services || []}
     />
   )
 }

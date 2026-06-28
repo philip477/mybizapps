@@ -42,6 +42,26 @@ function blankItem() {
   return { description: '', quantity: '1', unit_price: '', amount: 0 }
 }
 
+// Turn a catalog service into a line item. Hourly services pre-fill the
+// estimated hours as the quantity and the hourly rate as the unit price; flat
+// services use a quantity of 1 at the flat rate.
+function itemFromService(s) {
+  if (s.pricing_type === 'hourly') {
+    return {
+      description: s.name || '',
+      quantity: String(s.estimated_hours ?? 1),
+      unit_price: String(s.hourly_rate ?? ''),
+      amount: 0,
+    }
+  }
+  return {
+    description: s.name || '',
+    quantity: '1',
+    unit_price: String(s.flat_rate ?? ''),
+    amount: 0,
+  }
+}
+
 const inputStyle = {
   width: '100%',
   boxSizing: 'border-box',
@@ -54,7 +74,7 @@ const inputStyle = {
   fontFamily: 'inherit',
 }
 
-export default function InvoiceFormClient({ isNew, docType, invoice, items, customers = [], facility = null }) {
+export default function InvoiceFormClient({ isNew, docType, invoice, items, customers = [], facility = null, services = [] }) {
   const router = useRouter()
   const label = docType === 'quote' ? 'Quote' : 'Invoice'
 
@@ -77,6 +97,7 @@ export default function InvoiceFormClient({ isNew, docType, invoice, items, cust
   const [busy, setBusy] = useState('') // '', 'draft', 'send'
   const [error, setError] = useState('')
   const [showPreview, setShowPreview] = useState(false)
+  const [showCatalog, setShowCatalog] = useState(false)
 
   // Derived totals
   const computed = useMemo(() => {
@@ -95,6 +116,21 @@ export default function InvoiceFormClient({ isNew, docType, invoice, items, cust
 
   function addItem() {
     setLineItems((prev) => [...prev, blankItem()])
+  }
+
+  // Add a line item from a catalog service. If the only existing row is still
+  // blank, replace it so the picker doesn't leave an empty leading row.
+  function addFromService(s) {
+    const item = itemFromService(s)
+    setLineItems((prev) => {
+      const onlyBlank =
+        prev.length === 1 &&
+        !prev[0].description.trim() &&
+        !num(prev[0].unit_price) &&
+        num(prev[0].quantity) <= 1
+      return onlyBlank ? [item] : [...prev, item]
+    })
+    setShowCatalog(false)
   }
 
   function removeItem(idx) {
@@ -352,9 +388,16 @@ export default function InvoiceFormClient({ isNew, docType, invoice, items, cust
               </div>
             </div>
           ))}
-          <button className="add-line" onClick={addItem}>
-            + Add Line Item
-          </button>
+          <div className="line-actions">
+            <button className="add-line" onClick={addItem}>
+              + Add Line Item
+            </button>
+            {services.length > 0 && (
+              <button className="add-line add-line--alt" onClick={() => setShowCatalog(true)}>
+                + Add from catalog
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Totals */}
@@ -439,6 +482,14 @@ export default function InvoiceFormClient({ isNew, docType, invoice, items, cust
           {busy === 'send' ? 'Sending…' : 'Send via Email'}
         </button>
       </div>
+
+      {showCatalog && (
+        <CatalogPicker
+          services={services}
+          onPick={addFromService}
+          onClose={() => setShowCatalog(false)}
+        />
+      )}
 
       {showPreview && (
         <InvoicePreview
@@ -536,7 +587,12 @@ export default function InvoiceFormClient({ isNew, docType, invoice, items, cust
           opacity: 0.4;
           cursor: not-allowed;
         }
+        .line-actions {
+          display: flex;
+          gap: 8px;
+        }
         .add-line {
+          flex: 1;
           width: 100%;
           background: #f5f8ff;
           color: ${C};
@@ -547,6 +603,9 @@ export default function InvoiceFormClient({ isNew, docType, invoice, items, cust
           font-weight: 600;
           cursor: pointer;
           font-family: inherit;
+        }
+        .add-line--alt {
+          background: #fff;
         }
         .totals {
           border: 1.5px solid ${C_BORDER};
@@ -1000,6 +1059,227 @@ function InvoicePreview({
           @page {
             margin: 16mm;
           }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+// Modal picker for the service catalog. Searchable, grouped by category, and
+// shows each service's pricing so the user knows what gets pre-filled.
+function CatalogPicker({ services = [], onPick, onClose }) {
+  const [search, setSearch] = useState('')
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return services
+    return services.filter((s) =>
+      `${s.name || ''} ${s.description || ''} ${s.category || ''}`.toLowerCase().includes(q)
+    )
+  }, [services, search])
+
+  const groups = useMemo(() => {
+    const map = new Map()
+    for (const s of filtered) {
+      const key = s.category?.trim() || 'Uncategorized'
+      if (!map.has(key)) map.set(key, [])
+      map.get(key).push(s)
+    }
+    return Array.from(map.entries())
+  }, [filtered])
+
+  const hasCategories = services.some((s) => s.category?.trim())
+
+  function priceLabel(s) {
+    if (s.pricing_type === 'hourly') {
+      const hrs = num(s.estimated_hours)
+      const base = `$${num(s.hourly_rate).toFixed(0)}/hr`
+      return hrs > 0 ? `${base} · ~${hrs}h` : base
+    }
+    return `$${num(s.flat_rate).toFixed(0)}`
+  }
+
+  return (
+    <div className="cp-overlay" role="dialog" aria-modal="true" onClick={onClose}>
+      <div className="cp-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="cp-head">
+          <span className="cp-title">Add from catalog</span>
+          <button className="cp-close" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+        </div>
+
+        <div className="cp-search-row">
+          <input
+            className="cp-search"
+            type="text"
+            placeholder="Search services…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            autoFocus
+          />
+        </div>
+
+        <div className="cp-list">
+          {filtered.length === 0 ? (
+            <div className="cp-empty">No services match your search.</div>
+          ) : (
+            groups.map(([category, list]) => (
+              <div key={category}>
+                {hasCategories && <div className="cp-group">{category}</div>}
+                {list.map((s) => (
+                  <button key={s.id} className="cp-row" onClick={() => onPick(s)}>
+                    <div className="cp-row-main">
+                      <div className="cp-name">{s.name || 'Unnamed service'}</div>
+                      {s.description && <div className="cp-desc">{s.description}</div>}
+                    </div>
+                    <div className="cp-price">
+                      <span className={`cp-badge ${s.pricing_type === 'hourly' ? 'cp-badge--hr' : ''}`}>
+                        {s.pricing_type === 'hourly' ? 'Hourly' : 'Flat'}
+                      </span>
+                      <span className="cp-amt">{priceLabel(s)}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      <style jsx>{`
+        .cp-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 1000;
+          background: rgba(20, 40, 70, 0.45);
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+        }
+        .cp-panel {
+          width: 100%;
+          max-width: 480px;
+          max-height: 82vh;
+          background: #fff;
+          border-radius: 14px 14px 0 0;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .cp-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 14px 12px;
+          border-bottom: 1.5px solid ${C_BORDER};
+        }
+        .cp-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: ${C};
+        }
+        .cp-close {
+          background: none;
+          border: none;
+          font-size: 16px;
+          color: ${C_MUTED};
+          cursor: pointer;
+          padding: 4px 8px;
+        }
+        .cp-search-row {
+          padding: 12px;
+          border-bottom: 1.5px solid ${C_BORDER};
+        }
+        .cp-search {
+          width: 100%;
+          box-sizing: border-box;
+          border: 1.5px solid ${C};
+          border-radius: 6px;
+          padding: 10px 12px;
+          font-size: 15px;
+          color: ${C};
+          outline: none;
+          font-family: inherit;
+        }
+        .cp-list {
+          flex: 1;
+          overflow-y: auto;
+        }
+        .cp-group {
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: ${C_MUTED};
+          background: #f5f8ff;
+          padding: 6px 12px;
+          border-bottom: 1.5px solid ${C_BORDER};
+        }
+        .cp-row {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px;
+          background: #fff;
+          border: none;
+          border-bottom: 1.5px solid ${C_BORDER};
+          cursor: pointer;
+          text-align: left;
+          font-family: inherit;
+        }
+        .cp-row:hover {
+          background: #f5f8ff;
+        }
+        .cp-row-main {
+          flex: 1;
+          min-width: 0;
+        }
+        .cp-name {
+          font-size: 15px;
+          font-weight: 600;
+          color: ${C};
+          margin-bottom: 2px;
+        }
+        .cp-desc {
+          font-size: 13px;
+          color: ${C_MUTED};
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .cp-price {
+          flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 3px;
+        }
+        .cp-badge {
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.4px;
+          padding: 2px 7px;
+          border-radius: 10px;
+          background: #e6f0ff;
+          color: ${C};
+        }
+        .cp-badge--hr {
+          background: #fff0e0;
+          color: #b06a16;
+        }
+        .cp-amt {
+          font-size: 14px;
+          font-weight: 700;
+          color: ${C};
+        }
+        .cp-empty {
+          padding: 40px 12px;
+          text-align: center;
+          color: ${C_MUTED};
+          font-size: 14px;
         }
       `}</style>
     </div>
