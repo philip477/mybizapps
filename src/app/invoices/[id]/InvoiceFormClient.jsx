@@ -102,12 +102,12 @@ export default function InvoiceFormClient({ isNew, docType, invoice, items, cust
   }
 
   // Generate a sequential document number scoped to the facility (via RLS).
-  async function nextDocNumber() {
-    const prefix = docType === 'quote' ? 'QT' : 'INV'
+  async function nextDocNumber(type = docType) {
+    const prefix = type === 'quote' ? 'QT' : 'INV'
     const { count } = await supabase
       .from('biz_invoices')
       .select('id', { count: 'exact', head: true })
-      .eq('doc_type', docType)
+      .eq('doc_type', type)
     const seq = 1001 + (count || 0)
     return `${prefix}-${seq}`
   }
@@ -212,6 +212,67 @@ export default function InvoiceFormClient({ isNew, docType, invoice, items, cust
       router.refresh()
     } catch (err) {
       setError(err.message || 'Send failed')
+      setBusy('')
+    }
+  }
+
+  // Generate an invoice from this (accepted) quote: copy customer, line items,
+  // totals, notes and terms into a fresh draft invoice, mark the quote accepted,
+  // then open the new invoice for review.
+  async function handleConvert() {
+    if (!customerId) {
+      setError('Please choose a customer.')
+      return
+    }
+    setError('')
+    setBusy('convert')
+    try {
+      // Save any edits to the quote and flip it to "accepted".
+      const quoteId = await persist('accepted')
+      if (!quoteId) {
+        setBusy('')
+        return
+      }
+
+      const { subtotal, taxAmount, total } = computed
+      const { data: created, error: insErr } = await supabase
+        .from('biz_invoices')
+        .insert({
+          doc_type: 'invoice',
+          customer_id: customerId,
+          status: 'draft',
+          subtotal,
+          tax_rate: taxRate === '' ? null : num(taxRate),
+          tax_amount: taxAmount,
+          total,
+          notes: notes.trim() || null,
+          terms: terms.trim() || null,
+          facility_id: localStorage.getItem('biz_facility_id'),
+          invoice_number: await nextDocNumber('invoice'),
+        })
+        .select('id')
+        .single()
+      if (insErr) throw insErr
+
+      const rowsToInsert = lineItems
+        .filter((it) => it.description.trim() || num(it.unit_price) || num(it.quantity) > 1)
+        .map((it, i) => ({
+          invoice_id: created.id,
+          description: it.description.trim(),
+          quantity: num(it.quantity),
+          unit_price: num(it.unit_price),
+          amount: num(it.quantity) * num(it.unit_price),
+          sort_order: i,
+        }))
+      if (rowsToInsert.length) {
+        const { error: itErr } = await supabase.from('biz_invoice_items').insert(rowsToInsert)
+        if (itErr) throw itErr
+      }
+
+      router.push(`/invoices/${created.id}`)
+      router.refresh()
+    } catch (err) {
+      setError(err.message || 'Convert failed')
       setBusy('')
     }
   }
@@ -355,6 +416,11 @@ export default function InvoiceFormClient({ isNew, docType, invoice, items, cust
 
       {/* Actions */}
       <div className="footer">
+        {docType === 'quote' && !isNew && (
+          <button className="act-btn" onClick={handleConvert} disabled={!!busy}>
+            {busy === 'convert' ? 'Converting…' : '→ Invoice'}
+          </button>
+        )}
         <button
           className="act-btn act-btn--ghost"
           onClick={() => setShowPreview(true)}

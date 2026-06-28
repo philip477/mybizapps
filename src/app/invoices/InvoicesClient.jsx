@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
+import { supabase } from '@/lib/supabase'
 
 const C = '#1a56a0'
 const C_MUTED = '#5580a0'
@@ -57,11 +58,88 @@ function StatusBadge({ status }) {
 export default function InvoicesClient({ initialDocs = [] }) {
   const router = useRouter()
   const [tab, setTab] = useState('invoice') // 'invoice' | 'quote'
+  const [converting, setConverting] = useState(null) // id of quote being converted
+  const [error, setError] = useState('')
 
   const docs = useMemo(
     () => initialDocs.filter((d) => (d.doc_type || 'invoice') === tab),
     [initialDocs, tab]
   )
+
+  // Convert an accepted quote into a fresh draft invoice: copy the quote's
+  // customer, line items, totals, notes and terms; mark the quote "accepted";
+  // then open the new invoice for review. Self-contained — the list rows carry
+  // only summary fields, so the full quote + its items are fetched here.
+  async function convertToInvoice(quote, e) {
+    e.stopPropagation()
+    if (converting) return
+    setError('')
+    setConverting(quote.id)
+    try {
+      const [{ data: full, error: qErr }, { data: qItems, error: iErr }] = await Promise.all([
+        supabase.from('biz_invoices').select('*').eq('id', quote.id).single(),
+        supabase
+          .from('biz_invoice_items')
+          .select('*')
+          .eq('invoice_id', quote.id)
+          .order('sort_order', { ascending: true }),
+      ])
+      if (qErr) throw qErr
+      if (iErr) throw iErr
+
+      // Next sequential invoice number, scoped to the facility via RLS.
+      const { count } = await supabase
+        .from('biz_invoices')
+        .select('id', { count: 'exact', head: true })
+        .eq('doc_type', 'invoice')
+      const invoiceNumber = `INV-${1001 + (count || 0)}`
+
+      const { data: created, error: insErr } = await supabase
+        .from('biz_invoices')
+        .insert({
+          doc_type: 'invoice',
+          customer_id: full.customer_id,
+          status: 'draft',
+          subtotal: full.subtotal,
+          tax_rate: full.tax_rate,
+          tax_amount: full.tax_amount,
+          total: full.total,
+          notes: full.notes,
+          terms: full.terms,
+          facility_id: full.facility_id,
+          invoice_number: invoiceNumber,
+        })
+        .select('id')
+        .single()
+      if (insErr) throw insErr
+
+      if (qItems && qItems.length) {
+        const { error: itErr } = await supabase.from('biz_invoice_items').insert(
+          qItems.map((it, i) => ({
+            invoice_id: created.id,
+            description: it.description,
+            quantity: it.quantity,
+            unit_price: it.unit_price,
+            amount: it.amount,
+            sort_order: it.sort_order ?? i,
+          }))
+        )
+        if (itErr) throw itErr
+      }
+
+      const { error: updErr } = await supabase
+        .from('biz_invoices')
+        .update({ status: 'accepted' })
+        .eq('id', quote.id)
+      if (updErr) throw updErr
+
+      router.push(`/invoices/${created.id}`)
+      router.refresh()
+    } catch (err) {
+      setConverting(null)
+      setError(err.message || 'Convert failed')
+    }
+  }
 
   return (
     <div className="wrap">
@@ -83,6 +161,8 @@ export default function InvoicesClient({ initialDocs = [] }) {
         ))}
       </div>
 
+      {error && <div className="error">{error}</div>}
+
       {/* List */}
       <div className="list">
         {docs.length === 0 ? (
@@ -92,7 +172,16 @@ export default function InvoicesClient({ initialDocs = [] }) {
           </div>
         ) : (
           docs.map((d) => (
-            <button key={d.id} className="row" onClick={() => router.push(`/invoices/${d.id}`)}>
+            <div
+              key={d.id}
+              className="row"
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push(`/invoices/${d.id}`)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') router.push(`/invoices/${d.id}`)
+              }}
+            >
               <div className="row-main">
                 <div className="row-top">
                   <span className="row-num">{d.invoice_number || '(no number)'}</span>
@@ -102,7 +191,17 @@ export default function InvoicesClient({ initialDocs = [] }) {
                 {d.due_date && <div className="row-sub">Due {fmtDate(d.due_date)}</div>}
               </div>
               <div className="row-total">{money(d.total)}</div>
-            </button>
+              {tab === 'quote' && (
+                <button
+                  className="convert-btn"
+                  onClick={(e) => convertToInvoice(d, e)}
+                  disabled={!!converting}
+                  title="Create an invoice from this quote"
+                >
+                  {converting === d.id ? '…' : '→ Invoice'}
+                </button>
+              )}
+            </div>
           ))
         )}
       </div>
@@ -191,6 +290,32 @@ export default function InvoicesClient({ initialDocs = [] }) {
           font-weight: 700;
           color: ${C};
           flex-shrink: 0;
+        }
+        .convert-btn {
+          flex-shrink: 0;
+          background: #f5f8ff;
+          color: ${C};
+          border: 1.5px solid ${C};
+          border-radius: 6px;
+          padding: 7px 10px;
+          font-size: 12px;
+          font-weight: 700;
+          cursor: pointer;
+          font-family: inherit;
+          white-space: nowrap;
+        }
+        .convert-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .error {
+          margin: 10px 12px 0;
+          background: #fde8e8;
+          color: #b02020;
+          padding: 10px 14px;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 600;
         }
         .empty {
           padding: 48px 12px;
