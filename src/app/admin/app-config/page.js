@@ -7,11 +7,16 @@ export const dynamic = 'force-dynamic'
 
 // App Config — super_user surface for configuring per-facility app settings.
 //
-// Settings live in biz_app_config as free-form key/value pairs scoped by
-// (facility_id, app_id, config_key). The classic use is an `*_admin_group`
-// key that names which biz_group administers an app — there is no role bypass,
-// so admin access is always group-driven. Keys ending in `_group` get a group
-// picker; everything else is a plain text value.
+// This surface is template-driven (see ./templates.js): a super_user can only
+// set values for predefined keys, never invent new ones. Values persist in
+// biz_app_config, scoped by (facility_id, app_id, config_key). The classic use
+// is an `*_admin_group` key that names which biz_group administers an app —
+// there is no role bypass, so admin access is always group-driven.
+//
+// This loader passes every assigned app plus all config rows and the facility's
+// groups down to the client, which keeps only apps that have a template and
+// renders each field by its declared type. There are no templates defined yet,
+// so the client's clean empty state is the current norm.
 //
 // Only super_users reach this page. master_control is confined to the Master
 // Control area by proxy.js, and regular users are bounced home below.
