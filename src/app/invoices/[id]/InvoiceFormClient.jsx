@@ -24,6 +24,20 @@ function money(n) {
   return `$${num(n).toFixed(2)}`
 }
 
+function formatDate(value) {
+  const d = value ? new Date(value) : new Date()
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+// Builds the address lines for a company/customer record (skips blanks).
+function addressLines(rec) {
+  if (!rec) return []
+  const cityLine = [rec.city, rec.state].filter(Boolean).join(', ')
+  const cityZip = [cityLine, rec.zip].filter(Boolean).join(' ')
+  return [rec.address, cityZip].filter((l) => l && l.trim())
+}
+
 function blankItem() {
   return { description: '', quantity: '1', unit_price: '', amount: 0 }
 }
@@ -40,7 +54,7 @@ const inputStyle = {
   fontFamily: 'inherit',
 }
 
-export default function InvoiceFormClient({ isNew, docType, invoice, items, customers = [] }) {
+export default function InvoiceFormClient({ isNew, docType, invoice, items, customers = [], facility = null }) {
   const router = useRouter()
   const label = docType === 'quote' ? 'Quote' : 'Invoice'
 
@@ -62,6 +76,7 @@ export default function InvoiceFormClient({ isNew, docType, invoice, items, cust
   const [terms, setTerms] = useState(invoice?.terms || '')
   const [busy, setBusy] = useState('') // '', 'draft', 'send'
   const [error, setError] = useState('')
+  const [showPreview, setShowPreview] = useState(false)
 
   // Derived totals
   const computed = useMemo(() => {
@@ -342,6 +357,13 @@ export default function InvoiceFormClient({ isNew, docType, invoice, items, cust
       <div className="footer">
         <button
           className="act-btn act-btn--ghost"
+          onClick={() => setShowPreview(true)}
+          disabled={!!busy}
+        >
+          Preview
+        </button>
+        <button
+          className="act-btn act-btn--ghost"
           onClick={handleSaveDraft}
           disabled={!!busy}
         >
@@ -351,6 +373,25 @@ export default function InvoiceFormClient({ isNew, docType, invoice, items, cust
           {busy === 'send' ? 'Sending…' : 'Send via Email'}
         </button>
       </div>
+
+      {showPreview && (
+        <InvoicePreview
+          docType={docType}
+          facility={facility}
+          customer={customers.find((c) => c.id === customerId) || null}
+          invoiceNumber={invoice?.invoice_number}
+          issueDate={invoice?.created_at}
+          dueDate={dueDate}
+          rows={computed.rows}
+          subtotal={computed.subtotal}
+          taxRate={taxRate}
+          taxAmount={computed.taxAmount}
+          total={computed.total}
+          notes={notes}
+          terms={terms}
+          onClose={() => setShowPreview(false)}
+        />
+      )}
 
       <style jsx>{`
         .wrap {
@@ -492,6 +533,407 @@ export default function InvoiceFormClient({ isNew, docType, invoice, items, cust
           background: #fff;
           color: ${C};
           border: 1.5px solid ${C};
+        }
+      `}</style>
+    </div>
+  )
+}
+
+// Full-screen, full-width printable preview of the invoice/quote. Rendered as an
+// overlay above the 480px app column. The print stylesheet hides everything but
+// the sheet so window.print() / "Save as PDF" produces a clean document.
+function InvoicePreview({
+  docType,
+  facility,
+  customer,
+  invoiceNumber,
+  issueDate,
+  dueDate,
+  rows,
+  subtotal,
+  taxRate,
+  taxAmount,
+  total,
+  notes,
+  terms,
+  onClose,
+}) {
+  const title = docType === 'quote' ? 'QUOTE' : 'INVOICE'
+  const companyName = facility?.name || 'Your Company'
+  const companyLines = addressLines(facility)
+  const billToName = customer ? customerLabel(customer) : 'No customer selected'
+  const billToLines = addressLines(customer)
+  // Only show line items that have something meaningful in them.
+  const visibleRows = (rows || []).filter(
+    (it) => it.description.trim() || num(it.unit_price) || num(it.quantity) > 1
+  )
+
+  return (
+    <div className="pv-overlay" role="dialog" aria-modal="true">
+      <div className="pv-toolbar">
+        <button className="pv-close" onClick={onClose}>
+          ← Back to editing
+        </button>
+        <button className="pv-print" onClick={() => window.print()}>
+          🖨 Print / Save PDF
+        </button>
+      </div>
+
+      <div className="pv-scroll">
+        <div className="sheet" id="invoice-print-sheet">
+          {/* Header: company + document meta */}
+          <div className="sheet-head">
+            <div className="company">
+              {facility?.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="logo" src={facility.logo_url} alt={companyName} />
+              ) : (
+                <div className="company-name">{companyName}</div>
+              )}
+              {facility?.logo_url && <div className="company-name sub">{companyName}</div>}
+              {companyLines.map((l, i) => (
+                <div className="muted-line" key={i}>
+                  {l}
+                </div>
+              ))}
+              {facility?.phone && <div className="muted-line">{facility.phone}</div>}
+            </div>
+            <div className="doc-meta">
+              <div className="doc-title">{title}</div>
+              <table className="meta-table">
+                <tbody>
+                  <tr>
+                    <td className="meta-k">Number</td>
+                    <td className="meta-v">{invoiceNumber || 'Draft'}</td>
+                  </tr>
+                  <tr>
+                    <td className="meta-k">Date</td>
+                    <td className="meta-v">{formatDate(issueDate)}</td>
+                  </tr>
+                  {dueDate && (
+                    <tr>
+                      <td className="meta-k">Due</td>
+                      <td className="meta-v">{formatDate(dueDate)}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Bill To */}
+          <div className="bill-to">
+            <div className="section-label">Bill To</div>
+            <div className="bill-name">{billToName}</div>
+            {billToLines.map((l, i) => (
+              <div className="muted-line" key={i}>
+                {l}
+              </div>
+            ))}
+            {customer?.email && <div className="muted-line">{customer.email}</div>}
+            {customer?.phone && <div className="muted-line">{customer.phone}</div>}
+          </div>
+
+          {/* Line items */}
+          <table className="items">
+            <thead>
+              <tr>
+                <th className="col-desc">Description</th>
+                <th className="col-num">Qty</th>
+                <th className="col-num">Unit Price</th>
+                <th className="col-num">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleRows.length === 0 ? (
+                <tr>
+                  <td className="empty" colSpan={4}>
+                    No line items yet.
+                  </td>
+                </tr>
+              ) : (
+                visibleRows.map((it, i) => (
+                  <tr key={i}>
+                    <td className="col-desc">{it.description || '—'}</td>
+                    <td className="col-num">{num(it.quantity)}</td>
+                    <td className="col-num">{money(it.unit_price)}</td>
+                    <td className="col-num">{money(it.amount)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+
+          {/* Totals */}
+          <div className="totals-wrap">
+            <table className="sum-table">
+              <tbody>
+                <tr>
+                  <td className="sum-k">Subtotal</td>
+                  <td className="sum-v">{money(subtotal)}</td>
+                </tr>
+                <tr>
+                  <td className="sum-k">Tax ({num(taxRate)}%)</td>
+                  <td className="sum-v">{money(taxAmount)}</td>
+                </tr>
+                <tr className="sum-total">
+                  <td className="sum-k">Total</td>
+                  <td className="sum-v">{money(total)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Notes & terms */}
+          {(notes.trim() || terms.trim()) && (
+            <div className="footnotes">
+              {notes.trim() && (
+                <div className="fn-block">
+                  <div className="section-label">Notes</div>
+                  <div className="fn-text">{notes}</div>
+                </div>
+              )}
+              {terms.trim() && (
+                <div className="fn-block">
+                  <div className="section-label">Terms</div>
+                  <div className="fn-text">{terms}</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="thanks">Thank you for your business.</div>
+        </div>
+      </div>
+
+      <style jsx>{`
+        .pv-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 1000;
+          background: #525659;
+          display: flex;
+          flex-direction: column;
+        }
+        .pv-toolbar {
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 10px 14px;
+          background: #2f3133;
+        }
+        .pv-close,
+        .pv-print {
+          border: none;
+          border-radius: 6px;
+          padding: 10px 16px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          font-family: inherit;
+        }
+        .pv-close {
+          background: transparent;
+          color: #fff;
+          border: 1.5px solid #6b6e70;
+        }
+        .pv-print {
+          background: ${C};
+          color: #fff;
+        }
+        .pv-scroll {
+          flex: 1;
+          overflow: auto;
+          padding: 24px 16px 48px;
+          display: flex;
+          justify-content: center;
+        }
+        .sheet {
+          width: 100%;
+          max-width: 800px;
+          background: #fff;
+          color: #1f2933;
+          box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+          padding: 48px 52px;
+          box-sizing: border-box;
+          font-size: 14px;
+          line-height: 1.5;
+          align-self: flex-start;
+        }
+        .sheet-head {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 24px;
+          margin-bottom: 36px;
+        }
+        .logo {
+          max-height: 64px;
+          max-width: 220px;
+          object-fit: contain;
+          margin-bottom: 8px;
+        }
+        .company-name {
+          font-size: 22px;
+          font-weight: 700;
+          color: ${C};
+        }
+        .company-name.sub {
+          font-size: 15px;
+          margin-bottom: 2px;
+        }
+        .muted-line {
+          color: #5a6b7b;
+          font-size: 13px;
+        }
+        .doc-meta {
+          text-align: right;
+          flex-shrink: 0;
+        }
+        .doc-title {
+          font-size: 30px;
+          font-weight: 800;
+          letter-spacing: 3px;
+          color: ${C};
+          margin-bottom: 12px;
+        }
+        .meta-table {
+          margin-left: auto;
+          border-collapse: collapse;
+        }
+        .meta-k {
+          color: #5a6b7b;
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          text-align: right;
+          padding: 2px 10px 2px 0;
+        }
+        .meta-v {
+          font-weight: 600;
+          text-align: right;
+          padding: 2px 0;
+        }
+        .bill-to {
+          margin-bottom: 28px;
+        }
+        .section-label {
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          color: ${C};
+          margin-bottom: 6px;
+        }
+        .bill-name {
+          font-size: 15px;
+          font-weight: 700;
+        }
+        .items {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 8px;
+        }
+        .items thead th {
+          background: ${C};
+          color: #fff;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          padding: 10px 12px;
+          text-align: left;
+        }
+        .items thead th.col-num {
+          text-align: right;
+        }
+        .items tbody td {
+          padding: 11px 12px;
+          border-bottom: 1px solid #e3eaf2;
+          vertical-align: top;
+        }
+        .col-num {
+          text-align: right;
+          white-space: nowrap;
+        }
+        .col-desc {
+          width: 60%;
+        }
+        .empty {
+          text-align: center;
+          color: #8696a6;
+          padding: 24px 12px;
+        }
+        .totals-wrap {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: 12px;
+        }
+        .sum-table {
+          border-collapse: collapse;
+          min-width: 260px;
+        }
+        .sum-k {
+          color: #5a6b7b;
+          padding: 6px 24px 6px 0;
+        }
+        .sum-v {
+          text-align: right;
+          font-weight: 600;
+          padding: 6px 0;
+        }
+        .sum-total .sum-k,
+        .sum-total .sum-v {
+          border-top: 2px solid ${C};
+          font-size: 18px;
+          font-weight: 800;
+          color: ${C};
+          padding-top: 10px;
+        }
+        .footnotes {
+          margin-top: 36px;
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+        }
+        .fn-text {
+          color: #3d4d5c;
+          white-space: pre-wrap;
+        }
+        .thanks {
+          margin-top: 40px;
+          padding-top: 16px;
+          border-top: 1px solid #e3eaf2;
+          text-align: center;
+          color: #8696a6;
+          font-size: 13px;
+        }
+      `}</style>
+
+      {/* Print rules: isolate the sheet so only the document prints. */}
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          #invoice-print-sheet,
+          #invoice-print-sheet * {
+            visibility: visible !important;
+          }
+          #invoice-print-sheet {
+            position: absolute !important;
+            left: 0;
+            top: 0;
+            width: 100%;
+            max-width: none !important;
+            padding: 0 !important;
+            box-shadow: none !important;
+          }
+          @page {
+            margin: 16mm;
+          }
         }
       `}</style>
     </div>
