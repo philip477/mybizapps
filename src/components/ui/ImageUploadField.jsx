@@ -1,15 +1,18 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { supabase } from '@/lib/supabase'
 
 const C = '#1a56a0'
 const C_BORDER = '#d0e0f4'
 
 // ImageUploadField — a 72×72 tap-to-upload square used for app icons and
 // company logos. Shows the current image, falls back to an emoji (or a "+"
-// prompt) when none is set, previews the picked file immediately, and POSTs to
-// /api/upload (service-role server upload). Calls onChange(publicUrl) on
-// success, or onChange('') when the image is removed.
+// prompt) when none is set, previews the picked file immediately, and uploads
+// straight to Supabase Storage from the browser (the buckets have authenticated
+// upload/update/delete policies, so the logged-in operator's session is enough
+// — no server round-trip). Calls onChange(publicUrl) on success, or
+// onChange('') when the image is removed.
 export default function ImageUploadField({
   value,
   emoji,
@@ -41,15 +44,18 @@ export default function ImageUploadField({
     setPreview(localUrl)
     setUploading(true)
     try {
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('bucket', bucket)
-      fd.append('prefix', prefix || '')
-      const res = await fetch('/api/upload', { method: 'POST', body: fd })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(json.error || 'Upload failed')
-      setPreview(json.url)
-      onChange(json.url)
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png'
+      const safePrefix = String(prefix || 'upload').replace(/[^a-zA-Z0-9_-]/g, '') || 'upload'
+      const path = `${safePrefix}_${Date.now()}.${ext}`
+
+      const { error: upErr } = await supabase.storage
+        .from(bucket)
+        .upload(path, file, { upsert: true, contentType: file.type })
+      if (upErr) throw upErr
+
+      const { data } = supabase.storage.from(bucket).getPublicUrl(path)
+      setPreview(data.publicUrl)
+      onChange(data.publicUrl)
     } catch (err) {
       setError(err.message || 'Upload failed')
       setPreview(value || null) // revert to last saved image
