@@ -80,10 +80,11 @@ export const config = {
     /*
      * Run on all routes EXCEPT:
      * - /login (auth page)
+     * - /auth (OAuth callback — exchanges the code itself, sets the session)
      * - /api (API routes handle their own auth)
      * - /_next/static, /_next/image (Next internals)
      * - favicon / manifest / static image assets
      */
-    '/((?!login|api|_next/static|_next/image|favicon\\.ico|icon-192\\.png|icon-512\\.png|apple-touch-icon\\.png|manifest\\.json|images).*)',
+    '/((?!login|auth|api|_next/static|_next/image|favicon\\.ico|icon-192\\.png|icon-512\\.png|apple-touch-icon\\.png|manifest\\.json|images).*)',
   ],
 }
