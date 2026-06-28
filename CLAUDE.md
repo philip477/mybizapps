@@ -43,8 +43,23 @@ the tenant table itself.
 
 `user`, `super_user`, `master_control`, `demo`.
 
-- **Admin access is group-only** — being a `super_user` does NOT bypass the
-  per-app admin-group check. There is **no role bypass** for admin surfaces.
+- **App visibility is group-membership only — no role bypass.** On the home
+  launcher (`src/app/page.js`), a group-based app shows only for users in the
+  app's configured access group; a `super_user` is NOT special and sees a
+  group-based app only if they belong to its group.
+- **`super_user` is the facility-admin role.** Facility-admin surfaces
+  (`/admin/*`, `/business-admin-apps`) and the writes behind them are gated at
+  BOTH the page layer AND in the database via RLS: admin-managed tables
+  (`biz_app_config`, `biz_service_catalog`, `biz_service_types`) require
+  `is_facility_admin()` (a `super_user` in the row's facility) or
+  `is_master_control()`. Group create requires facility-admin; editing a group
+  and managing its members requires facility-admin OR the group's leader
+  (`is_group_leader()`, i.e. an `is_admin` member). The page redirect is UX
+  only — RLS is the real boundary.
+- **Per-app `*_admin_group` gating is the future direction:** once admin groups
+  are configured per app, admin writes should narrow from the `super_user`
+  facility-admin role to the app's `admin_group` membership (mirroring
+  myltcapps). Until then `super_user` is the documented facility-admin.
 - `master_control` is confined (in `proxy.js`) to `/master-control/*`,
   `/my-account`, and `/`.
 

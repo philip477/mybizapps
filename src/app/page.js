@@ -68,12 +68,12 @@ export default async function HomePage() {
     : { data: null }
 
   const role = bizUser?.user_role ?? 'user'
-  const isSuper = role === 'super_user'
 
   // The home menu follows the "My Apps" pattern (see src/lib/homeApps.js): core
-  // apps show for everyone, group-based apps only for users in the app's
-  // configured access group, and super_users see everything. We load four
-  // things in parallel:
+  // apps show for everyone; group-based apps show only for users who are members
+  // of the app's configured access group. No role bypass — a super_user sees a
+  // group-based app only if they're in its group (admin tooling lives elsewhere).
+  // We load four things in parallel:
   //   perms        — the facility's assigned apps (Assign Company Apps), ordered
   //   memberships  — the caller's biz_group ids (for group gating)
   //   accessCfg    — each app's `*_access_group` value (app_id → group_id)
@@ -152,7 +152,7 @@ export default async function HomePage() {
       const gb = GROUP_BASED_BY_LINK[app.app_link]
       if (gb) {
         const grp = accessGroupByApp[app.id]
-        if (isSuper || (grp && userGroupIds.has(grp))) groupApps.push(app)
+        if (grp && userGroupIds.has(grp)) groupApps.push(app)
         continue
       }
       // Unknown app — never hide it. Show alongside the group-based tier.
