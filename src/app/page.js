@@ -38,7 +38,7 @@ export default async function HomePage() {
   // Nav items: the facility's configured app set (biz_app_permission_mains
   // joined to biz_apps), ordered by app_order. Falls back to ALL active
   // biz_apps when no permission_mains exist yet (fresh facility).
-  const APP_SELECT = 'id, app_name, app_icon, app_link, app_active'
+  const APP_SELECT = 'id, app_name, app_icon, app_link, active'
   let navItems = []
 
   if (fid) {
@@ -50,14 +50,14 @@ export default async function HomePage() {
 
     navItems = (perms || [])
       .map((p) => (Array.isArray(p.biz_apps) ? p.biz_apps[0] : p.biz_apps))
-      .filter((a) => a && a.app_active)
+      .filter((a) => a && a.active)
   }
 
   if (navItems.length === 0) {
     const { data: allApps } = await supabase
       .from('biz_apps')
       .select(APP_SELECT)
-      .eq('app_active', true)
+      .eq('active', true)
       .order('app_name')
     navItems = allApps || []
   }
