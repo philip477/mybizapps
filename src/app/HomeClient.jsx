@@ -22,7 +22,7 @@ function AppIcon({ icon, fallback = '📦' }) {
 
 // A single tappable app row: icon square on the left, name, right chevron, with
 // a thin divider underneath. Mirrors the MyLTC Apps home list.
-function AppRow({ icon, name, onClick }) {
+function AppRow({ icon, fallback, name, onClick }) {
   return (
     <div
       onClick={onClick}
@@ -51,7 +51,7 @@ function AppRow({ icon, name, onClick }) {
           overflow: 'hidden',
         }}
       >
-        <AppIcon icon={icon} />
+        <AppIcon icon={icon} fallback={fallback} />
       </div>
       <span
         style={{
@@ -181,6 +181,7 @@ export default function HomeClient({ user, facility, navItems = [] }) {
             <AppRow
               key={app.id || app.app_link}
               icon={app.app_icon}
+              fallback={app.app_icon_emoji || '📦'}
               name={app.app_name}
               onClick={() => openApp(app)}
             />

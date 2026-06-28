@@ -45,7 +45,7 @@ export default async function HomePage() {
   // Nav items: the facility's configured app set (biz_app_permission_mains
   // joined to biz_apps), ordered by app_order. Falls back to ALL active
   // biz_apps when no permission_mains exist yet (fresh facility).
-  const APP_SELECT = 'id, app_name, app_icon, app_link, active'
+  const APP_SELECT = 'id, app_name, app_icon, app_icon_emoji, app_link, active'
   let navItems = []
 
   if (fid) {

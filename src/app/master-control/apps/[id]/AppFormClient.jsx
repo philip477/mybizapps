@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
+import ImageUploadField from '@/components/ui/ImageUploadField'
 import { supabase } from '@/lib/supabase'
 
 const C = '#1a56a0'
@@ -15,6 +16,7 @@ function initialForm(app) {
     app_name: app?.app_name ?? '',
     app_link: app?.app_link ?? '',
     admin_link: app?.admin_link ?? '',
+    app_icon: app?.app_icon ?? '',
     app_icon_emoji: app?.app_icon_emoji ?? '',
     app_type: app?.app_type ?? 'User App',
     description: app?.description ?? '',
@@ -47,6 +49,7 @@ export default function AppFormClient({ app, isNew }) {
         app_name: form.app_name.trim(),
         app_link: form.app_link.trim() || null,
         admin_link: form.admin_link.trim() || null,
+        app_icon: form.app_icon.trim() || null,
         app_icon_emoji: form.app_icon_emoji.trim() || null,
         app_type: form.app_type,
         description: form.description.trim() || null,
@@ -130,6 +133,20 @@ export default function AppFormClient({ app, isNew }) {
             onChange={(e) => set('admin_link', e.target.value)}
             placeholder="optional — e.g. /customers/admin"
           />
+        </div>
+
+        <div className="field">
+          <label className="label">Icon (image)</label>
+          <ImageUploadField
+            value={form.app_icon}
+            emoji={form.app_icon_emoji}
+            bucket="app-icons"
+            prefix={app?.id ? `app-${app.id}` : 'app-new'}
+            onChange={(url) => set('app_icon', url)}
+          />
+          <div className="hint">
+            Upload an icon image, or leave it empty to fall back to the emoji below.
+          </div>
         </div>
 
         <div className="field">
@@ -228,6 +245,11 @@ export default function AppFormClient({ app, isNew }) {
           font-weight: 600;
           color: ${C};
           margin-bottom: 4px;
+        }
+        .hint {
+          font-size: 11px;
+          color: #5580a0;
+          margin-top: 6px;
         }
         .input {
           width: 100%;

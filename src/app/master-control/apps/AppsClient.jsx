@@ -63,7 +63,12 @@ export default function AppsClient({ initialApps = [] }) {
                 className="row"
                 onClick={() => router.push(`/master-control/apps/${a.id}`)}
               >
-                <span className="icon">{a.app_icon_emoji || '📦'}</span>
+                {a.app_icon ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img className="icon-img" src={a.app_icon} alt="" />
+                ) : (
+                  <span className="icon">{a.app_icon_emoji || '📦'}</span>
+                )}
                 <div className="row-main">
                   <div className="row-name">{a.app_name || 'Unnamed app'}</div>
                   <div className="row-meta">
@@ -146,6 +151,13 @@ export default function AppsClient({ initialApps = [] }) {
           flex-shrink: 0;
           width: 28px;
           text-align: center;
+        }
+        .icon-img {
+          width: 28px;
+          height: 28px;
+          flex-shrink: 0;
+          object-fit: contain;
+          border-radius: 6px;
         }
         .row-main {
           flex: 1;

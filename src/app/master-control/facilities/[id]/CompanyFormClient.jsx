@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
+import ImageUploadField from '@/components/ui/ImageUploadField'
 import { supabase } from '@/lib/supabase'
 
 const C = '#1a56a0'
@@ -43,6 +44,7 @@ function initialForm(company) {
   return {
     name: company?.name ?? '',
     slug: company?.slug ?? '',
+    logo_url: company?.logo_url ?? '',
     phone: company?.phone ?? '',
     address: company?.address ?? '',
     city: company?.city ?? '',
@@ -92,6 +94,7 @@ export default function CompanyFormClient({ company, isNew }) {
       const payload = {
         name: form.name.trim(),
         slug: form.slug.trim() || slugify(form.name),
+        logo_url: form.logo_url.trim() || null,
         phone: form.phone.trim() || null,
         address: form.address.trim() || null,
         city: form.city.trim() || null,
@@ -171,6 +174,17 @@ export default function CompanyFormClient({ company, isNew }) {
 
       <div className="body">
         {error && <div className="error">{error}</div>}
+
+        <div className="field">
+          <label className="label">Logo</label>
+          <ImageUploadField
+            value={form.logo_url}
+            bucket="company-logos"
+            prefix={company?.id ? `company-${company.id}` : 'company-new'}
+            onChange={(url) => set('logo_url', url)}
+          />
+          <div className="hint">Upload a company logo image (optional).</div>
+        </div>
 
         <div className="field">
           <label className="label">Name</label>
@@ -294,6 +308,11 @@ export default function CompanyFormClient({ company, isNew }) {
           font-weight: 600;
           color: ${C};
           margin-bottom: 4px;
+        }
+        .hint {
+          font-size: 11px;
+          color: #5580a0;
+          margin-top: 6px;
         }
         .input {
           width: 100%;

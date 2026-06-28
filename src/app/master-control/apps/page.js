@@ -16,7 +16,7 @@ export default async function Page() {
 
   const { data } = await supabase
     .from('biz_apps')
-    .select('id, app_name, app_type, app_icon_emoji, active, sort_order')
+    .select('id, app_name, app_type, app_icon, app_icon_emoji, active, sort_order')
     .order('sort_order', { ascending: true, nullsFirst: false })
     .order('app_name', { ascending: true, nullsFirst: false })
 
