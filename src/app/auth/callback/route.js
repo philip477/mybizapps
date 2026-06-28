@@ -1,5 +1,6 @@
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase-server'
 
 // Clamp ?next= to a same-origin path to avoid open-redirects.
 function safeNext(raw) {
@@ -8,55 +9,91 @@ function safeNext(raw) {
   return raw
 }
 
+// Build a redirect back to /login carrying an error code (and optional detail).
+function loginRedirect(origin, params) {
+  const url = new URL('/login', origin)
+  for (const [key, value] of Object.entries(params)) {
+    if (value) url.searchParams.set(key, value)
+  }
+  return NextResponse.redirect(url)
+}
+
 // GET /auth/callback — the OAuth (Google) redirect target.
 //
 // Supabase sends the user back here with a one-time `?code` after they consent.
-// We exchange that code for a session — the server client writes the auth cookies
-// onto the redirect response — then enforce the same provisioning rule as
-// getUser(): an authenticated Google identity that isn't registered in biz_users
-// must NOT keep a usable session.
+// We exchange that code for a session and — crucially — bind Supabase's cookie
+// writes to the redirect *response* we return, so the freshly-minted session
+// cookies actually reach the browser. (The shared createClient() writes to the
+// next/headers store and swallows failures, which does NOT reliably attach
+// cookies to a hand-built redirect; proxy.js sets cookies on its response for
+// the same reason.)
+//
+// We then enforce the same provisioning rule as getUser(): an authenticated
+// Google identity that isn't registered in biz_users is signed out and bounced
+// to /login rather than handed a usable session.
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const next = safeNext(searchParams.get('next'))
 
-  // The provider may redirect back with an error instead of a code (e.g. the
+  // The provider can redirect back with an error instead of a code (e.g. the
   // user denied consent).
   const oauthError =
     searchParams.get('error_description') || searchParams.get('error')
 
-  if (code) {
-    const supabase = await createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-
-    if (!error) {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      const { data: bizUser } = await supabase
-        .from('biz_users')
-        .select('id')
-        .ilike('email', user?.email || '')
-        .maybeSingle()
-
-      if (!bizUser) {
-        // Signed in to Supabase but not provisioned — drop the session and
-        // surface the "not registered" message on the login page.
-        await supabase.auth.signOut()
-        const url = new URL('/login', origin)
-        url.searchParams.set('error', 'user_not_found')
-        if (user?.email) url.searchParams.set('email', user.email)
-        return NextResponse.redirect(url)
-      }
-
-      return NextResponse.redirect(new URL(next, origin))
-    }
+  if (!code) {
+    return loginRedirect(origin, { error: 'auth_failed', detail: oauthError })
   }
 
-  // No code, or the exchange failed → back to login with a generic error.
-  const url = new URL('/login', origin)
-  url.searchParams.set('error', 'auth_failed')
-  if (oauthError) url.searchParams.set('detail', oauthError)
-  return NextResponse.redirect(url)
+  const cookieStore = await cookies()
+
+  // The happy-path response. Supabase writes the session cookies onto THIS
+  // object via setAll below, so they ride along with the redirect to `next`.
+  const response = NextResponse.redirect(new URL(next, origin))
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        getAll() {
+          // Includes the PKCE code-verifier cookie set by the browser client,
+          // which exchangeCodeForSession needs to read.
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  const { error } = await supabase.auth.exchangeCodeForSession(code)
+  if (error) {
+    return loginRedirect(origin, { error: 'auth_failed', detail: error.message })
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const { data: bizUser } = await supabase
+    .from('biz_users')
+    .select('id')
+    .ilike('email', user?.email || '')
+    .maybeSingle()
+
+  if (!bizUser) {
+    // Authenticated to Supabase but not provisioned — drop the session and
+    // surface the "not registered" message on the login page.
+    await supabase.auth.signOut()
+    return loginRedirect(origin, {
+      error: 'user_not_found',
+      email: user?.email,
+    })
+  }
+
+  return response
 }
