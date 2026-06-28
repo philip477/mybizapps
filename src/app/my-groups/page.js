@@ -51,6 +51,8 @@ export default async function Page() {
       <GroupTasksClient
         appName={appMeta?.app_name || 'My Groups'}
         myUserId={user?.id || null}
+        myRole={user?.role || null}
+        myFacilityId={user?.facility_id || null}
         initialGroups={groups || []}
         initialTasks={tasks || []}
         initialMemberships={memberships || []}
