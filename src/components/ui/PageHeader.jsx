@@ -2,14 +2,31 @@
 
 import { useRouter } from 'next/navigation'
 
+// Renders the right-side app icon, which may be an image URL or an emoji.
+function HeaderAppIcon({ icon, title }) {
+  const isImageUrl = icon && (icon.startsWith('http') || icon.startsWith('/'))
+  if (isImageUrl) {
+    return (
+      <img
+        src={icon}
+        alt={title || ''}
+        style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 4 }}
+      />
+    )
+  }
+  return <span style={{ fontSize: 30, lineHeight: 1 }}>{icon}</span>
+}
+
 /**
  * PageHeader — top bar for every internal page.
  *
  * Props:
- *   title  — centered page/app name
- *   onBack — optional override for the back button (defaults to router.back())
+ *   title   — centered page/app name
+ *   onBack  — optional override for the back button (defaults to router.back())
+ *   appIcon — optional app icon (image URL or emoji) shown on the far right;
+ *             when omitted, a spacer keeps the title centered.
  */
-export default function PageHeader({ title, onBack }) {
+export default function PageHeader({ title, onBack, appIcon }) {
   const router = useRouter()
 
   function handleBack() {
@@ -36,8 +53,15 @@ export default function PageHeader({ title, onBack }) {
 
       <h1 className="page-header__title">{title}</h1>
 
-      {/* Spacer keeps the title centered against the two left buttons. */}
-      <div className="page-header__spacer" />
+      {/* Far-right app icon, or a spacer that keeps the title centered against
+          the two left buttons when no icon is supplied. */}
+      {appIcon ? (
+        <div className="page-header__app-icon">
+          <HeaderAppIcon icon={appIcon} title={title} />
+        </div>
+      ) : (
+        <div className="page-header__spacer" />
+      )}
 
       <style jsx>{`
         .page-header {
@@ -86,6 +110,13 @@ export default function PageHeader({ title, onBack }) {
         .page-header__spacer {
           width: 76px;
           flex-shrink: 0;
+        }
+        .page-header__app-icon {
+          width: 76px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
         }
       `}</style>
     </div>
