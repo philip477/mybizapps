@@ -168,6 +168,33 @@ export default async function HomePage() {
     )
   }
 
+  // super_users administer the facility, so surface the Business Control hub
+  // (App Config, Assign Company Apps, …) on their home menu. Those are
+  // `Admin Only` apps, which never flow through the User App launcher above, so
+  // there's otherwise no way to reach company config from home. The page itself
+  // re-checks the role (RLS is the real boundary); a missing catalog row falls
+  // back to the built-in hub tile so the entry point is never lost.
+  let adminApps = []
+  if (role === 'super_user') {
+    const { data: hub } = await supabase
+      .from('biz_apps')
+      .select(APP_SELECT)
+      .eq('app_type', 'Admin Only')
+      .eq('app_link', '/business-admin-apps')
+      .eq('active', true)
+      .maybeSingle()
+    adminApps = hub
+      ? [hub]
+      : [{
+          id: 'business-admin-apps',
+          app_name: 'Business Control',
+          app_link: '/business-admin-apps',
+          app_icon: null,
+          app_icon_emoji: '⚙️',
+          active: true,
+        }]
+  }
+
   const user = {
     id: bizUser?.id ?? authUser.id,
     email: bizUser?.email ?? authUser.email,
@@ -179,6 +206,12 @@ export default async function HomePage() {
   }
 
   return (
-    <HomeClient user={user} facility={facility} coreApps={coreApps} groupApps={groupApps} />
+    <HomeClient
+      user={user}
+      facility={facility}
+      coreApps={coreApps}
+      groupApps={groupApps}
+      adminApps={adminApps}
+    />
   )
 }

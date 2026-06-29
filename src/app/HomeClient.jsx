@@ -87,7 +87,7 @@ function SectionLabel({ children }) {
   )
 }
 
-export default function HomeClient({ user, facility, coreApps = [], groupApps = [] }) {
+export default function HomeClient({ user, facility, coreApps = [], groupApps = [], adminApps = [] }) {
   const router = useRouter()
 
   async function handleLogout() {
@@ -99,7 +99,7 @@ export default function HomeClient({ user, facility, coreApps = [], groupApps = 
     if (app.app_link) router.push(app.app_link)
   }
 
-  const hasAny = coreApps.length > 0 || groupApps.length > 0
+  const hasAny = coreApps.length > 0 || groupApps.length > 0 || adminApps.length > 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -211,6 +211,21 @@ export default function HomeClient({ user, facility, coreApps = [], groupApps = 
                 key={app.id || app.app_link}
                 icon={app.app_icon}
                 fallback={app.app_icon_emoji || '📦'}
+                name={app.app_name}
+                onClick={() => openApp(app)}
+              />
+            ))}
+          </>
+        )}
+
+        {adminApps.length > 0 && (
+          <>
+            <SectionLabel>Admin</SectionLabel>
+            {adminApps.map((app) => (
+              <AppRow
+                key={app.id || app.app_link}
+                icon={app.app_icon}
+                fallback={app.app_icon_emoji || '⚙️'}
                 name={app.app_name}
                 onClick={() => openApp(app)}
               />
