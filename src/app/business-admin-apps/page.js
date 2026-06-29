@@ -15,6 +15,7 @@ export const dynamic = 'force-dynamic'
 const FALLBACK_ADMIN_APPS = [
   { id: 'app-config', app_name: 'App Config', app_link: '/admin/app-config', app_icon: '⚙️' },
   { id: 'assign-apps', app_name: 'Assign Company Apps', app_link: '/admin/assign-apps', app_icon: '🧩' },
+  { id: 'modules', app_name: 'Manage Modules', app_link: '/admin/modules', app_icon: '📦' },
   { id: 'services', app_name: 'Manage Services', app_link: '/admin/services', app_icon: '🛠️' },
 ]
 
@@ -32,7 +33,19 @@ export default async function Page() {
     .order('sort_order', { ascending: true })
     .order('app_name', { ascending: true })
 
-  const apps = adminApps && adminApps.length > 0 ? adminApps : FALLBACK_ADMIN_APPS
+  const apps = adminApps && adminApps.length > 0 ? [...adminApps] : [...FALLBACK_ADMIN_APPS]
+
+  // Manage Modules has no biz_apps catalog row yet, so ensure it's always
+  // present in the hub regardless of what's been seeded.
+  if (!apps.some((a) => a.app_link === '/admin/modules')) {
+    apps.push({
+      id: 'manage-modules',
+      app_name: 'Manage Modules',
+      app_link: '/admin/modules',
+      app_icon: null,
+      app_icon_emoji: '📦',
+    })
+  }
 
   return <BusinessAdminClient apps={apps} />
 }
