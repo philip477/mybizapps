@@ -211,6 +211,24 @@ export default function AppConfigClient({
       </div>
 
       <div style={{ padding: '12px' }}>
+        {/* Accept Credit Cards — facility-level payment setup via Stripe Connect.
+            Not a template field (it drives an onboarding flow), so it links to
+            its own page. */}
+        <div
+          onClick={() => router.push('/admin/accept-payments')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') router.push('/admin/accept-payments') }}
+          style={{ marginBottom: 10, border: '1.5px solid #d0e0f4', borderRadius: 10, padding: '12px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, background: '#fff' }}
+        >
+          <div style={{ width: 44, height: 44, borderRadius: 8, flexShrink: 0, background: '#1a56a0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>💳</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 600, color: '#1a56a0' }}>Accept Credit Cards</div>
+            <div style={{ fontSize: 12, color: '#5580a0', marginTop: 2 }}>Set up card payments through Stripe</div>
+          </div>
+          <span style={{ fontSize: 18, color: '#1a56a0', fontWeight: 'bold' }}>›</span>
+        </div>
+
         {configurableApps.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 16px', color: '#5580a0', fontSize: 14, lineHeight: 1.5 }}>
             <div style={{ fontSize: 40, marginBottom: 10 }}>⚙️</div>
