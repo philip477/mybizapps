@@ -193,6 +193,21 @@ export default function HomeClient({ user, facility, coreApps = [], groupApps = 
       {/* App list — core apps always show; group-based apps appear only when
           the user's group has access (filtering happens server-side). */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
+        {adminApps.length > 0 && (
+          <>
+            <SectionLabel>Admin</SectionLabel>
+            {adminApps.map((app) => (
+              <AppRow
+                key={app.id || app.app_link}
+                icon={app.app_icon}
+                fallback={app.app_icon_emoji || '⚙️'}
+                name={app.app_name}
+                onClick={() => openApp(app)}
+              />
+            ))}
+          </>
+        )}
+
         {coreApps.map((app) => (
           <AppRow
             key={app.id || app.app_link}
@@ -211,21 +226,6 @@ export default function HomeClient({ user, facility, coreApps = [], groupApps = 
                 key={app.id || app.app_link}
                 icon={app.app_icon}
                 fallback={app.app_icon_emoji || '📦'}
-                name={app.app_name}
-                onClick={() => openApp(app)}
-              />
-            ))}
-          </>
-        )}
-
-        {adminApps.length > 0 && (
-          <>
-            <SectionLabel>Admin</SectionLabel>
-            {adminApps.map((app) => (
-              <AppRow
-                key={app.id || app.app_link}
-                icon={app.app_icon}
-                fallback={app.app_icon_emoji || '⚙️'}
                 name={app.app_name}
                 onClick={() => openApp(app)}
               />
