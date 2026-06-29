@@ -39,7 +39,7 @@ export default function AcceptPaymentsClient({ initialStatus = null }) {
 
   return (
     <div style={{ background: '#fff', minHeight: '100vh', fontFamily: "'Segoe UI', Arial, sans-serif" }}>
-      <PageHeader title="Accept Card Payments" onBack={() => router.push('/business-admin-apps')} />
+      <PageHeader title="Accept Card Payments" onBack={() => router.push('/admin/company-config')} />
 
       <div style={{ padding: 16 }}>
         <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.6, marginBottom: 16 }}>

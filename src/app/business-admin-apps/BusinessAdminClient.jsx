@@ -13,7 +13,12 @@ function AppIcon({ icon, emoji, name }) {
   return <span style={{ color: '#fff', fontSize: 18, fontWeight: 600 }}>{name?.charAt(0).toUpperCase() || '?'}</span>
 }
 
-export default function BusinessAdminClient({ apps = [] }) {
+export default function BusinessAdminClient({
+  apps = [],
+  title = 'Business Control',
+  subtitle = 'Admin tools for configuring your company’s apps.',
+  backHref = '/',
+}) {
   const router = useRouter()
 
   function openApp(app) {
@@ -22,10 +27,10 @@ export default function BusinessAdminClient({ apps = [] }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <PageHeader title="Business Control" onBack={() => router.push('/')} />
+      <PageHeader title={title} onBack={() => router.push(backHref)} />
 
       <div style={{ fontSize: 12, color: '#888', background: '#f5f8ff', padding: '6px 16px', borderBottom: '1.5px solid #d0e0f4' }}>
-        Admin tools for configuring your company’s apps.
+        {subtitle}
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto' }}>

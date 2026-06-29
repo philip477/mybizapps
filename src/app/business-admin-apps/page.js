@@ -14,17 +14,18 @@ export const dynamic = 'force-dynamic'
 // Master Control area by proxy.js; regular users are bounced home.
 const FALLBACK_ADMIN_APPS = [
   { id: 'app-config', app_name: 'App Config', app_link: '/admin/app-config', app_icon: '⚙️' },
+  { id: 'company-config', app_name: 'Company Config', app_link: '/admin/company-config', app_icon: '🏢' },
   { id: 'assign-apps', app_name: 'Assign Company Apps', app_link: '/admin/assign-apps', app_icon: '🧩' },
   { id: 'modules', app_name: 'Manage Modules', app_link: '/admin/modules', app_icon: '📦' },
-  { id: 'payments', app_name: 'Accept Payments', app_link: '/admin/accept-payments', app_icon: '💳' },
   { id: 'services', app_name: 'Manage Services', app_link: '/admin/services', app_icon: '🛠️' },
 ]
 
 // Built-in admin tools that have no biz_apps catalog row yet but should always
-// appear in the hub, keyed by app_link.
+// appear in the hub, keyed by app_link. (Accept Payments lives inside Company
+// Config now, so it isn't surfaced at the hub's top level.)
 const BUILTIN_ADMIN_APPS = [
+  { id: 'company-config', app_name: 'Company Config', app_link: '/admin/company-config', app_icon: null, app_icon_emoji: '🏢' },
   { id: 'manage-modules', app_name: 'Manage Modules', app_link: '/admin/modules', app_icon: null, app_icon_emoji: '📦' },
-  { id: 'accept-payments', app_name: 'Accept Payments', app_link: '/admin/accept-payments', app_icon: null, app_icon_emoji: '💳' },
 ]
 
 export default async function Page() {
