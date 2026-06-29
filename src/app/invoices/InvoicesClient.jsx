@@ -57,7 +57,7 @@ function StatusBadge({ status }) {
 
 export default function InvoicesClient({ initialDocs = [] }) {
   const router = useRouter()
-  const [tab, setTab] = useState('invoice') // 'invoice' | 'quote'
+  const [tab, setTab] = useState('quote') // 'quote' | 'invoice'
   const [converting, setConverting] = useState(null) // id of quote being converted
   const [error, setError] = useState('')
 
@@ -148,8 +148,8 @@ export default function InvoicesClient({ initialDocs = [] }) {
       {/* Tabs */}
       <div className="tabs">
         {[
-          { key: 'invoice', label: 'Invoices' },
           { key: 'quote', label: 'Quotes' },
+          { key: 'invoice', label: 'Invoices' },
         ].map((t) => (
           <button
             key={t.key}
