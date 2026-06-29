@@ -27,7 +27,8 @@
 //   ],
 import { GROUP_BASED_APPS } from '@/lib/homeApps'
 
-export const APP_CONFIG_TEMPLATES = Object.fromEntries(
+// The access-group field every group-based app gets (see the note above).
+const GROUP_FIELDS = Object.fromEntries(
   GROUP_BASED_APPS.map((a) => [
     a.app_link,
     [
@@ -40,6 +41,27 @@ export const APP_CONFIG_TEMPLATES = Object.fromEntries(
     ],
   ]),
 )
+
+// Per-app settings beyond access-group gating. An app may appear here in
+// addition to GROUP_FIELDS; the two are merged below.
+const EXTRA_FIELDS = {
+  '/directory': [
+    {
+      key: 'directory_show_extensions',
+      label: 'Show Extensions tab',
+      type: 'toggle',
+      help: "When on, the Employee Directory includes an Extensions tab listing each employee's phone extension.",
+    },
+  ],
+}
+
+export const APP_CONFIG_TEMPLATES = (() => {
+  const merged = { ...GROUP_FIELDS }
+  for (const [appLink, fields] of Object.entries(EXTRA_FIELDS)) {
+    merged[appLink] = [...(merged[appLink] || []), ...fields]
+  }
+  return merged
+})()
 
 // The template (array of field descriptors) for an app, or null if the app has
 // no predefined config.
