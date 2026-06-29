@@ -208,14 +208,14 @@ export default function InvoicesClient({ initialDocs = [] }) {
 
       {/* Footer actions */}
       <div className="footer">
-        <button className="act-btn" onClick={() => router.push('/invoices/new?type=invoice')}>
-          + Create Invoice
+        <button className="act-btn" onClick={() => router.push('/invoices/new?type=quote')}>
+          + Create Quote
         </button>
         <button
           className="act-btn act-btn--ghost"
-          onClick={() => router.push('/invoices/new?type=quote')}
+          onClick={() => router.push('/invoices/new?type=invoice')}
         >
-          + Create Quote
+          + Create Invoice
         </button>
       </div>
 
