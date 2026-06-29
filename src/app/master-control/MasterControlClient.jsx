@@ -34,6 +34,7 @@ export default function MasterControlClient({ apps = [], appIcon = '', appName =
         title={appName || 'Master Control'}
         appIcon={appIcon}
         onBack={() => router.push('/')}
+        onLogout={handleLogout}
       />
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -80,28 +81,6 @@ export default function MasterControlClient({ apps = [], appIcon = '', appName =
             </div>
           ))
         )}
-      </div>
-
-      {/* master_control operators are confined to the Master Control area (see
-          proxy.js) and never see the home launcher's logout, so surface it here. */}
-      <div style={{ padding: 16, borderTop: '1.5px solid #d0e0f4' }}>
-        <button
-          onClick={handleLogout}
-          style={{
-            width: '100%',
-            padding: '12px',
-            background: '#fff',
-            color: '#1a56a0',
-            border: '1.5px solid #d0e0f4',
-            borderRadius: 8,
-            fontSize: 15,
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-        >
-          Log out
-        </button>
       </div>
     </div>
   )

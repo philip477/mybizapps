@@ -21,12 +21,15 @@ function HeaderAppIcon({ icon, title }) {
  * PageHeader — top bar for every internal page.
  *
  * Props:
- *   title   — centered page/app name
- *   onBack  — optional override for the back button (defaults to router.back())
- *   appIcon — optional app icon (image URL or emoji) shown on the far right;
- *             when omitted, a spacer keeps the title centered.
+ *   title    — centered page/app name
+ *   onBack   — optional override for the back button (defaults to router.back())
+ *   appIcon  — optional app icon (image URL or emoji) shown on the far right;
+ *              when omitted, a spacer keeps the title centered.
+ *   onLogout — optional handler; when provided, a small "Log out" button is
+ *              shown at the top-right (used where the home launcher's logout
+ *              isn't reachable, e.g. the confined Master Control area).
  */
-export default function PageHeader({ title, onBack, appIcon }) {
+export default function PageHeader({ title, onBack, appIcon, onLogout }) {
   const router = useRouter()
 
   function handleBack() {
@@ -53,11 +56,16 @@ export default function PageHeader({ title, onBack, appIcon }) {
 
       <h1 className="page-header__title">{title}</h1>
 
-      {/* Far-right app icon, or a spacer that keeps the title centered against
-          the two left buttons when no icon is supplied. */}
-      {appIcon ? (
-        <div className="page-header__app-icon">
-          <HeaderAppIcon icon={appIcon} title={title} />
+      {/* Far-right: optional Log out button + app icon. A plain spacer keeps the
+          title centered against the two left buttons when neither is supplied. */}
+      {onLogout || appIcon ? (
+        <div className="page-header__right">
+          {onLogout && (
+            <button type="button" className="page-header__logout" onClick={onLogout}>
+              Log out
+            </button>
+          )}
+          {appIcon && <HeaderAppIcon icon={appIcon} title={title} />}
         </div>
       ) : (
         <div className="page-header__spacer" />
@@ -111,12 +119,28 @@ export default function PageHeader({ title, onBack, appIcon }) {
           width: 76px;
           flex-shrink: 0;
         }
-        .page-header__app-icon {
-          width: 76px;
+        .page-header__right {
+          min-width: 76px;
           flex-shrink: 0;
           display: flex;
           align-items: center;
           justify-content: flex-end;
+          gap: 8px;
+        }
+        .page-header__logout {
+          background: none;
+          border: 1px solid #d0e0f4;
+          border-radius: 4px;
+          padding: 4px 10px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #5580a0;
+          cursor: pointer;
+          white-space: nowrap;
+          font-family: inherit;
+        }
+        .page-header__logout:hover {
+          background: #f5f8ff;
         }
       `}</style>
     </div>
