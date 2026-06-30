@@ -3,7 +3,7 @@
 // under `.mkt`, so it inherits the marketing styles in marketing.css.
 //
 // The numbers and copy mirror the `biz_modules` catalog in Supabase (base
-// modules at no extra cost, premium add-ons at $250/yr each). biz_modules is
+// platform at $1,000/yr, premium add-ons at $250/yr each). biz_modules is
 // RLS-scoped to authenticated, facility-bound users, so a public page can't read
 // it with the anon key — like /price-sheet, the marketing copy is kept in sync
 // here by hand.
@@ -66,6 +66,7 @@ export const ADDON_MODULES = [
   },
 ]
 
+export const BASE_PRICE = 1000
 export const ADDON_PRICE = 250
 
 export default function PricingSection({ sunken = true }) {
@@ -87,8 +88,8 @@ export default function PricingSection({ sunken = true }) {
             <div className="price-card-head">
               <div className="plan-name">Starter</div>
               <div className="plan-price">
-                <span className="amt">Free</span>
-                <span className="per">to start</span>
+                <span className="amt">${BASE_PRICE.toLocaleString('en-US')}</span>
+                <span className="per">/ year</span>
               </div>
               <p className="plan-blurb">
                 The core apps every business needs to get running on day one.

@@ -8,7 +8,7 @@ import PricingSection, { ADDON_PRICE } from '../PricingSection'
 export const metadata = {
   title: 'MyBizApps — Pricing',
   description:
-    'Simple pricing for MyBizApps: start free with the core apps, add premium modules at $250/year each.',
+    'Simple pricing for MyBizApps: the core apps for $1,000/year, plus premium modules at $250/year each.',
 }
 
 export default function PricingPage() {
