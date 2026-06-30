@@ -245,6 +245,20 @@ export default function LoginClient() {
           </svg>
           {googleLoading ? 'Redirecting...' : 'Continue with Google'}
         </button>
+
+        <p
+          style={{
+            textAlign: 'center',
+            marginTop: 24,
+            fontSize: 14,
+            color: '#5580a0',
+          }}
+        >
+          Don&apos;t have an account?{' '}
+          <a href="/signup" style={{ color: '#1a56a0', fontWeight: 600 }}>
+            Sign up
+          </a>
+        </p>
       </div>
     </div>
   )
