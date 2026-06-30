@@ -41,6 +41,7 @@ export const GROUP_BASED_APPS = [
   { app_link: '/meetings', app_name: 'Meetings', config_key: 'meetings_access_group' },
   { app_link: '/reservations', app_name: 'Reservations', config_key: 'reservations_access_group' },
   { app_link: '/my-docs', app_name: 'My Docs', config_key: 'docs_access_group' },
+  { app_link: '/marketing-tools', app_name: 'Marketing Tools', config_key: 'marketing_tools_access_group' },
 ]
 
 // Lookups derived from the lists above.
