@@ -55,6 +55,24 @@ const EXTRA_FIELDS = {
   ],
 }
 
+// Facility-wide settings — NOT tied to any app. Unlike APP_CONFIG_TEMPLATES
+// (which is keyed by app_link), these are global to the whole facility, so they
+// can't live under an app entry. They persist in biz_facility_config, keyed by
+// (facility_id, config_key), and are edited in the "General Settings" section of
+// AppConfigClient. Same field-descriptor shape as the per-app templates.
+//   { key, label, type, help?, default? }
+// `default` is the value assumed when no config row exists yet — e.g. AI Assist
+// defaults to 'true' (on) so AI features are opt-out, not opt-in.
+export const FACILITY_SETTINGS = [
+  {
+    key: 'ai_assist_enabled',
+    label: 'AI Assist',
+    type: 'toggle',
+    help: 'Enable AI-powered features like logo generation and design tools. Turn off to opt out of AI features.',
+    default: 'true',
+  },
+]
+
 export const APP_CONFIG_TEMPLATES = (() => {
   const merged = { ...GROUP_FIELDS }
   for (const [appLink, fields] of Object.entries(EXTRA_FIELDS)) {

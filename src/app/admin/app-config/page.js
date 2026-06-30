@@ -30,7 +30,7 @@ export default async function Page() {
   // The fields the client needs to render each app tile.
   const APP_FIELDS = 'id, app_name, app_icon, app_icon_emoji, app_link, app_type, active'
 
-  const [{ data: appMeta }, { data: perms }, { data: config }, { data: groups }] =
+  const [{ data: appMeta }, { data: perms }, { data: config }, { data: groups }, { data: facilityConfig }] =
     await Promise.all([
       supabase
         .from('biz_apps')
@@ -62,6 +62,14 @@ export default async function Page() {
             .eq('active', true)
             .order('name')
         : Promise.resolve({ data: [] }),
+      // Facility-wide settings (e.g. AI Assist), edited in the General Settings
+      // section. Global to the facility, not tied to any app.
+      fid
+        ? supabase
+            .from('biz_facility_config')
+            .select('id, config_key, config_value')
+            .eq('facility_id', fid)
+        : Promise.resolve({ data: [] }),
     ])
 
   // Resolve the facility's enabled apps exactly the way the home launcher does:
@@ -88,11 +96,12 @@ export default async function Page() {
 
   return (
     <AppConfigClient
-      appName={appMeta?.app_name || 'App Config'}
+      appName={appMeta?.app_name || 'Business Config'}
       facilityId={fid}
       initialApps={apps}
       initialConfig={config || []}
       initialGroups={groups || []}
+      initialFacilityConfig={facilityConfig || []}
     />
   )
 }

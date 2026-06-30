@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import { supabase } from '@/lib/supabase'
-import { templateFor, hasTemplate } from './templates'
+import { templateFor, hasTemplate, FACILITY_SETTINGS } from './templates'
 
 // App Config — per-facility app settings editor.
 //
@@ -35,11 +35,12 @@ const inputStyle = {
 }
 
 export default function AppConfigClient({
-  appName = 'App Config',
+  appName = 'Business Config',
   facilityId = null,
   initialApps = [],
   initialConfig = [],
   initialGroups = [],
+  initialFacilityConfig = [],
 }) {
   const router = useRouter()
   const [groups] = useState(initialGroups)
@@ -79,6 +80,24 @@ export default function AppConfigClient({
     return m
   })
 
+  // Facility-wide settings (biz_facility_config) — global to the facility, not
+  // tied to any app. Seeded from initialFacilityConfig, with each field's
+  // `default` filling in keys that have no row yet (e.g. AI Assist defaults on).
+  const [facilityValues, setFacilityValues] = useState(() => {
+    const v = {}
+    for (const r of initialFacilityConfig) v[r.config_key] = r.config_value ?? ''
+    for (const f of FACILITY_SETTINGS) {
+      if (v[f.key] === undefined && f.default !== undefined) v[f.key] = f.default
+    }
+    return v
+  })
+  const [facilityRowIds, setFacilityRowIds] = useState(() => {
+    const m = {}
+    for (const r of initialFacilityConfig) m[r.config_key] = r.id
+    return m
+  })
+  const [savingFacility, setSavingFacility] = useState(false)
+
   const [expanded, setExpanded] = useState(() => new Set())
   const [saving, setSaving] = useState(null)
   const [toast, setToast] = useState(null)
@@ -108,6 +127,48 @@ export default function AppConfigClient({
 
   function valueOf(appId, key) {
     return (values[appId] || {})[key] ?? ''
+  }
+
+  function facilityValueOf(key) {
+    return facilityValues[key] ?? ''
+  }
+
+  function setFacilityValue(key, value) {
+    setFacilityValues((prev) => ({ ...prev, [key]: value }))
+  }
+
+  // Persist the facility-wide settings to biz_facility_config. Mirrors saveApp:
+  // update by row id when one exists, insert otherwise (no unique index assumed).
+  async function saveFacilitySettings() {
+    if (!facilityId) return
+    setSavingFacility(true)
+    try {
+      for (const field of FACILITY_SETTINGS) {
+        const key = field.key
+        const value = facilityValues[key] ?? field.default ?? ''
+        const id = facilityRowIds[key]
+        if (id) {
+          const { error } = await supabase
+            .from('biz_facility_config')
+            .update({ config_value: value })
+            .eq('id', id)
+          if (error) throw error
+        } else {
+          const { data, error } = await supabase
+            .from('biz_facility_config')
+            .insert({ facility_id: facilityId, config_key: key, config_value: value })
+            .select('id')
+            .single()
+          if (error) throw error
+          setFacilityRowIds((prev) => ({ ...prev, [key]: data.id }))
+        }
+      }
+      showToast('Settings saved')
+    } catch (err) {
+      showToast(err.message || 'Save failed', 'error')
+    } finally {
+      setSavingFacility(false)
+    }
   }
 
   async function saveApp(app) {
@@ -143,13 +204,15 @@ export default function AppConfigClient({
     }
   }
 
-  function renderField(app, field) {
-    const value = valueOf(app.id, field.key)
+  // Renders one field by its declared type. Generic over where the value lives:
+  // the caller supplies the current value and an onChange(newValue) handler, so
+  // the same renderer serves both per-app and facility-wide settings.
+  function renderField(field, value, onChange) {
     if (field.type === 'group') {
       return (
         <select
           value={value}
-          onChange={(e) => setValue(app.id, field.key, e.target.value)}
+          onChange={(e) => onChange(e.target.value)}
           style={inputStyle}
         >
           <option value="">— select a group —</option>
@@ -164,7 +227,7 @@ export default function AppConfigClient({
       return (
         <button
           type="button"
-          onClick={() => setValue(app.id, field.key, on ? 'false' : 'true')}
+          onClick={() => onChange(on ? 'false' : 'true')}
           aria-pressed={on}
           style={{
             position: 'relative', width: 52, height: 30, borderRadius: 15, border: 'none',
@@ -184,7 +247,7 @@ export default function AppConfigClient({
       <input
         type="text"
         value={value}
-        onChange={(e) => setValue(app.id, field.key, e.target.value)}
+        onChange={(e) => onChange(e.target.value)}
         style={inputStyle}
       />
     )
@@ -211,6 +274,49 @@ export default function AppConfigClient({
       </div>
 
       <div style={{ padding: '12px' }}>
+        {/* General Settings — facility-wide toggles (biz_facility_config), shown
+            above the per-app configs since they apply to the whole company. */}
+        {FACILITY_SETTINGS.length > 0 && (
+          <div style={{ marginBottom: 14, border: '1.5px solid #d0e0f4', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: '#f0f6ff' }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: 8, flexShrink: 0, background: '#1a56a0',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24,
+              }}>
+                🛠️
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 600, color: '#1a56a0' }}>General Settings</div>
+                <div style={{ fontSize: 12, color: '#5580a0', marginTop: 2 }}>Company-wide preferences</div>
+              </div>
+            </div>
+            <div style={{ padding: '12px 14px', borderTop: '1.5px solid #d0e0f4' }}>
+              {FACILITY_SETTINGS.map((field) => (
+                <div key={field.key} style={{ marginBottom: 14 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#5580a0', textTransform: 'uppercase', letterSpacing: 0.4, display: 'block', marginBottom: 5 }}>
+                    {field.label || field.key}
+                  </label>
+                  {renderField(field, facilityValueOf(field.key), (v) => setFacilityValue(field.key, v))}
+                  {field.help && (
+                    <div style={{ fontSize: 12, color: '#999', marginTop: 5 }}>{field.help}</div>
+                  )}
+                </div>
+              ))}
+              <button
+                onClick={saveFacilitySettings}
+                disabled={savingFacility}
+                style={{
+                  width: '100%', marginTop: 4, background: savingFacility ? '#a0b8d0' : '#1a56a0',
+                  color: '#fff', border: 'none', borderRadius: 8, padding: '13px 0',
+                  fontSize: 15, fontWeight: 700, cursor: savingFacility ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {savingFacility ? 'Saving…' : 'Save Settings'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {configurableApps.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 16px', color: '#5580a0', fontSize: 14, lineHeight: 1.5 }}>
             <div style={{ fontSize: 40, marginBottom: 10 }}>⚙️</div>
@@ -250,7 +356,7 @@ export default function AppConfigClient({
                         <label style={{ fontSize: 12, fontWeight: 700, color: '#5580a0', textTransform: 'uppercase', letterSpacing: 0.4, display: 'block', marginBottom: 5 }}>
                           {field.label || field.key}
                         </label>
-                        {renderField(app, field)}
+                        {renderField(field, valueOf(app.id, field.key), (v) => setValue(app.id, field.key, v))}
                         {field.help && (
                           <div style={{ fontSize: 12, color: '#999', marginTop: 5 }}>{field.help}</div>
                         )}

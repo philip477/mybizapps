@@ -92,6 +92,27 @@ export async function POST(request) {
     return Response.json({ error: 'Not authenticated' }, { status: 401 })
   }
 
+  // --- Facility AI opt-out --------------------------------------------------
+  // AI Assist is a facility-wide setting (Business Config → General Settings),
+  // stored in biz_facility_config and defaulting ON when no row exists. RLS
+  // scopes this read to the caller's facility, so no facility_id is needed here.
+  // Only an explicit 'false' disables AI; a missing row keeps features on.
+  const { data: aiSetting } = await supabase
+    .from('biz_facility_config')
+    .select('config_value')
+    .eq('config_key', 'ai_assist_enabled')
+    .maybeSingle()
+  if (aiSetting?.config_value === 'false') {
+    return Response.json(
+      {
+        error:
+          'AI features are turned off for your company. An administrator can ' +
+          're-enable them under Business Config → General Settings → AI Assist.',
+      },
+      { status: 403 }
+    )
+  }
+
   // --- Validate input -------------------------------------------------------
   const type = body?.type
   if (!VALID_TYPES.has(type)) {
