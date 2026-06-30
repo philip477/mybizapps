@@ -36,7 +36,7 @@ export async function proxy(request) {
   // Public routes that do NOT require authentication. "/" serves the marketing
   // landing page to unauthenticated visitors (page.js decides app-vs-marketing),
   // so it must NOT be bounced to /login.
-  const isPublic = path === '/' || path === '/price-sheet'
+  const isPublic = path === '/' || path === '/pricing' || path === '/price-sheet'
 
   if (!user) {
     // OAuth resilience: the provider should land the user on /auth/callback,

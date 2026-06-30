@@ -1,40 +1,14 @@
 import './marketing.css'
+import { BrandMark, MarketingNav, MarketingFooter } from './marketing-shared'
+import PricingSection from './PricingSection'
 
 // MarketingPage — the public landing page shown at "/" to unauthenticated
 // visitors. Self-contained (no external image assets): the brand mark is an
 // inline SVG and every app glyph is an emoji on a tinted tile. The whole tree
 // is scoped under `.mkt`, which also full-bleeds out of the 480px app column
-// defined in layout.js so the marketing site renders edge-to-edge.
-
-// Brand mark — a 4-quadrant squircle echoing "a family of apps":
-// brand blue, bright blue, teal, warm orange.
-function BrandMark({ className = 'brand-mark' }) {
-  return (
-    <svg className={className} viewBox="0 0 44 44" role="img" aria-label="MyBizApps logo">
-      <defs>
-        <clipPath id="mb-squircle">
-          <rect x="0" y="0" width="44" height="44" rx="11" />
-        </clipPath>
-      </defs>
-      <g clipPath="url(#mb-squircle)">
-        <rect x="0" y="0" width="22" height="22" fill="#3E8FD4" />
-        <rect x="22" y="0" width="22" height="22" fill="#F08030" />
-        <rect x="0" y="22" width="22" height="22" fill="#1a56a0" />
-        <rect x="22" y="22" width="22" height="22" fill="#20A0B0" />
-        <rect x="19.5" y="0" width="5" height="44" fill="#fff" />
-        <rect x="0" y="19.5" width="44" height="5" fill="#fff" />
-      </g>
-    </svg>
-  )
-}
-
-function BrandLockup() {
-  return (
-    <a className="brand-lockup" href="/">
-      <img src="/images/mybizapps-logo.png" alt="MyBizApps" style={{ height: '48px' }} />
-    </a>
-  )
-}
+// defined in layout.js so the marketing site renders edge-to-edge. The nav,
+// footer, and pricing block are shared with the standalone /pricing route
+// (marketing-shared.jsx, PricingSection.jsx).
 
 // ── The flagship four + two supporting apps shown as full cards ──
 const FLAGSHIP_APPS = [
@@ -140,20 +114,7 @@ export default function MarketingPage() {
   return (
     <div className="mkt">
       {/* ── Top nav ── */}
-      <nav className="top-nav">
-        <div className="container top-nav-inner">
-          <BrandLockup />
-          <div className="nav-links">
-            <a className="nav-link" href="#apps">Apps</a>
-            <a className="nav-link" href="#why">Why MyBizApps</a>
-            <a className="nav-link" href="#more">More apps</a>
-          </div>
-          <div className="nav-cta">
-            <a className="btn btn-ghost" href="/login">Login</a>
-            <a className="btn btn-primary" href="/signup">Get started</a>
-          </div>
-        </div>
-      </nav>
+      <MarketingNav home />
 
       {/* ── Hero ── */}
       <section className="hero">
@@ -323,6 +284,9 @@ export default function MarketingPage() {
         </div>
       </section>
 
+      {/* ── Pricing (shared with /pricing) ── */}
+      <PricingSection sunken={false} />
+
       {/* ── Supporting apps ── */}
       <section className="section sunken" id="more">
         <div className="container">
@@ -376,38 +340,7 @@ export default function MarketingPage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="site-footer">
-        <div className="container foot-grid">
-          <div>
-            <BrandLockup />
-            <p className="tagline">All-in-one operations<br />software for small business</p>
-          </div>
-          <div className="foot-col">
-            <h6>Core apps</h6>
-            <a href="/login">Customers CRM</a>
-            <a href="/login">Invoices &amp; Quotes</a>
-            <a href="/login">Accounting</a>
-            <a href="/login">Service Schedule</a>
-          </div>
-          <div className="foot-col">
-            <h6>More apps</h6>
-            <a href="/login">Work Tickets</a>
-            <a href="/login">Employee Directory</a>
-            <a href="/login">On-Call Calendar</a>
-            <a href="/login">Tasks &amp; Docs</a>
-          </div>
-          <div className="foot-col">
-            <h6>Company</h6>
-            <a href="/login">Log in</a>
-            <a href="/signup">Get started</a>
-            <a href="mailto:hello@mybizapps.app">Contact</a>
-          </div>
-        </div>
-        <div className="container foot-bot">
-          <span>© 2026 MyBizApps</span>
-          <span>One login · Any device · Built for small business</span>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
   )
 }

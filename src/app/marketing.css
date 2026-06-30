@@ -549,6 +549,134 @@ body:has(.mkt) { overflow-x: clip; }
 .mkt .mini-phone .phone-screen { min-height: auto; padding-top: 18px; padding-bottom: 10px; }
 
 /* ============================================================
+   PRICING
+   ============================================================ */
+.mkt .pricing-hero {
+  padding: 72px 0 8px;
+  text-align: center;
+}
+.mkt .pricing-hero h1 {
+  font-size: 52px;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  line-height: 1.06;
+  color: var(--brand-blue-600);
+  margin-bottom: 18px;
+}
+.mkt .pricing-hero .lede {
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--neutral-600);
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.mkt .pricing-grid {
+  display: grid;
+  grid-template-columns: 0.85fr 1.25fr;
+  gap: 28px;
+  align-items: start;
+  max-width: 1060px;
+  margin: 0 auto;
+}
+
+.mkt .price-card {
+  background: #fff;
+  border: 1.5px solid var(--brand-blue-100);
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: var(--shadow-md);
+}
+/* Featured Starter tier — brand blue */
+.mkt .price-card.featured {
+  background: var(--grad-brand);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: var(--shadow-xl);
+}
+.mkt .price-card.featured .plan-name,
+.mkt .price-card.featured .plan-price .amt { color: #fff; }
+.mkt .price-card.featured .plan-price .per,
+.mkt .price-card.featured .plan-blurb { color: rgba(255,255,255,0.9); }
+.mkt .price-card.featured .price-includes { color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.25); }
+.mkt .price-card.featured .pm-name { color: #fff; }
+.mkt .price-card.featured .pm-desc { color: rgba(255,255,255,0.85); }
+
+.mkt .price-card-head { margin-bottom: 8px; }
+.mkt .price-card .plan-name {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--brand-teal-700);
+}
+.mkt .price-card .plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 10px 0 12px;
+}
+.mkt .price-card .plan-price .amt {
+  font-size: 48px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--brand-blue-600);
+}
+.mkt .price-card .plan-price .per { font-size: 16px; font-weight: 700; color: var(--neutral-500); }
+.mkt .price-card .plan-blurb { font-size: 15px; line-height: 1.5; color: var(--neutral-600); margin-bottom: 20px; }
+.mkt .price-card .price-cta { width: 100%; }
+
+.mkt .price-card .price-includes {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--neutral-500);
+  margin: 24px 0 16px;
+  padding-top: 18px;
+  border-top: 1.5px solid var(--neutral-100);
+}
+
+/* Module rows (Starter) and grid items (Add-ons) share the icon + body bits */
+.mkt .price-modules { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.mkt .price-module { display: flex; align-items: flex-start; gap: 14px; }
+
+.mkt .addon-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.mkt .addon-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 1.5px solid var(--brand-blue-100);
+  border-radius: 14px;
+  background: var(--neutral-25);
+  transition: transform 160ms, box-shadow 160ms, border-color 160ms;
+}
+.mkt .addon-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--brand-blue-300); }
+
+.mkt .pm-icon {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 23px;
+  flex-shrink: 0;
+}
+.mkt .price-card.featured .pm-icon { box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
+.mkt .pm-body { flex: 1; min-width: 0; }
+.mkt .pm-name { font-size: 16px; font-weight: 800; color: var(--brand-blue-600); letter-spacing: -0.01em; }
+.mkt .pm-desc { font-size: 13.5px; line-height: 1.45; color: var(--neutral-600); margin-top: 3px; }
+.mkt .addon-price {
+  flex-shrink: 0;
+  font-size: 17px;
+  font-weight: 900;
+  color: var(--brand-blue-600);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.mkt .addon-price span { font-size: 11px; font-weight: 700; color: var(--neutral-500); }
+
+/* ============================================================
    STAT BAND
    ============================================================ */
 .mkt .stat-row {
@@ -679,6 +807,8 @@ body:has(.mkt) { overflow-x: clip; }
   .mkt .foot-grid { grid-template-columns: 1fr 1fr; }
   .mkt .callout { display: none; }
   .mkt .cta-inner h2 { font-size: 32px; }
+  .mkt .pricing-grid { grid-template-columns: 1fr; gap: 24px; max-width: 560px; }
+  .mkt .pricing-hero h1 { font-size: 38px; }
 }
 
 @media (max-width: 560px) {
@@ -692,4 +822,7 @@ body:has(.mkt) { overflow-x: clip; }
   .mkt .phone { width: 300px; }
   .mkt .section-head h2 { font-size: 28px; }
   .mkt .cta-inner h2 { font-size: 28px; }
+  .mkt .addon-grid { grid-template-columns: 1fr; }
+  .mkt .price-card { padding: 24px; }
+  .mkt .pricing-hero h1 { font-size: 30px; }
 }
