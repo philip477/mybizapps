@@ -172,7 +172,7 @@ export default function MarketingPage() {
               whole team — in one simple, mobile-first menu.
             </p>
             <div className="hero-cta">
-              <a className="btn btn-primary btn-lg" href="/login">Get started free</a>
+              <a className="btn btn-primary btn-lg" href="/login">Get Started</a>
               <a className="btn btn-outline btn-lg" href="#apps">See the apps</a>
             </div>
             <div className="hero-bullets">
@@ -369,7 +369,7 @@ export default function MarketingPage() {
             simple login. Start today, or have us walk your team through it.
           </p>
           <div className="cta-actions">
-            <a className="btn btn-white btn-lg" href="/login">Get started free</a>
+            <a className="btn btn-white btn-lg" href="/login">Get Started</a>
             <a className="btn btn-ghost-light btn-lg" href="mailto:hello@mybizapps.app?subject=MyBizApps%20demo%20request">Request a demo</a>
           </div>
         </div>
