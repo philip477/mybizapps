@@ -24,7 +24,7 @@ const FALLBACK_ADMIN_APPS = [
 // appear in the hub, keyed by app_link. (Accept Payments lives inside Company
 // Config now, so it isn't surfaced at the hub's top level.)
 const BUILTIN_ADMIN_APPS = [
-  { id: 'company-config', app_name: 'Company Config', app_link: '/admin/company-config', app_icon: null, app_icon_emoji: '🏢' },
+  { id: 'company-config', app_name: 'Business Config', app_link: '/admin/company-config', app_icon: null, app_icon_emoji: '🏢' },
   { id: 'manage-modules', app_name: 'Manage Modules', app_link: '/admin/modules', app_icon: null, app_icon_emoji: '📦' },
 ]
 
