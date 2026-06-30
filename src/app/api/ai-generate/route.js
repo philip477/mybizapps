@@ -93,7 +93,7 @@ export async function POST(request) {
   }
 
   // --- Facility AI opt-out --------------------------------------------------
-  // AI Assist is a facility-wide setting (Business Config → General Settings),
+  // AI Assist is a facility-wide setting (App Config → General Settings),
   // stored in biz_facility_config and defaulting ON when no row exists. RLS
   // scopes this read to the caller's facility, so no facility_id is needed here.
   // Only an explicit 'false' disables AI; a missing row keeps features on.
@@ -107,7 +107,7 @@ export async function POST(request) {
       {
         error:
           'AI features are turned off for your company. An administrator can ' +
-          're-enable them under Business Config → General Settings → AI Assist.',
+          're-enable them under App Config → General Settings → AI Assist.',
       },
       { status: 403 }
     )

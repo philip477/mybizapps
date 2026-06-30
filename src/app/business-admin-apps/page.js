@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
 // Admin access is super_user-only here. master_control is confined to the
 // Master Control area by proxy.js; regular users are bounced home.
 const FALLBACK_ADMIN_APPS = [
-  { id: 'app-config', app_name: 'Business Config', app_link: '/admin/app-config', app_icon: '⚙️' },
+  { id: 'app-config', app_name: 'App Config', app_link: '/admin/app-config', app_icon: '⚙️' },
   { id: 'company-config', app_name: 'Company Config', app_link: '/admin/company-config', app_icon: '🏢' },
   { id: 'assign-apps', app_name: 'Assign Company Apps', app_link: '/admin/assign-apps', app_icon: '🧩' },
   { id: 'modules', app_name: 'Manage Modules', app_link: '/admin/modules', app_icon: '📦' },

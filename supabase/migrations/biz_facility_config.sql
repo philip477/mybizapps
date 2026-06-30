@@ -4,7 +4,7 @@
 -- per-app settings. Some preferences are global to the whole facility (e.g. the
 -- "AI Assist" opt-out that gates the Marketing Tools AI generators), which have
 -- no app_id to hang off. This table holds those, keyed by (facility_id,
--- config_key). Edited in Business Config → General Settings (AppConfigClient).
+-- config_key). Edited in App Config → General Settings (AppConfigClient).
 --
 -- RLS mirrors biz_app_config's tenant model:
 --   • READ  — any user in the row's facility (the ai-generate route reads the

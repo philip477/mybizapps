@@ -35,7 +35,7 @@ const inputStyle = {
 }
 
 export default function AppConfigClient({
-  appName = 'Business Config',
+  appName = 'App Config',
   facilityId = null,
   initialApps = [],
   initialConfig = [],

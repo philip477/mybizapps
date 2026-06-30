@@ -96,7 +96,7 @@ export default async function Page() {
 
   return (
     <AppConfigClient
-      appName={appMeta?.app_name || 'Business Config'}
+      appName={appMeta?.app_name || 'App Config'}
       facilityId={fid}
       initialApps={apps}
       initialConfig={config || []}
