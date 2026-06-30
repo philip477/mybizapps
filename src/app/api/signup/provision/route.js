@@ -13,9 +13,35 @@
 // facility or their own profile. The function keys off auth.uid(), so it runs
 // with the caller's verified identity and is idempotent.
 import { createClient } from '@/lib/supabase-server'
+import { sendSms } from '@/lib/sms'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+// Where the "new signup" SMS goes. Defaults to Philip Anton's cell; override
+// per-environment with PHILIP_PHONE_NUMBER if it ever changes.
+const SIGNUP_NOTIFY_PHONE = process.env.PHILIP_PHONE_NUMBER || ''
+
+// Fire-and-forget: text Philip that a new business just signed up. Never throws
+// into the signup path — Twilio config/failures only get logged.
+function notifyNewSignup({ firstName, lastName, companyName, email }) {
+  const fullName = [firstName, lastName].filter(Boolean).join(' ').trim() || 'Someone'
+  const body = `🆕 MyBizApps Signup: ${fullName} from ${companyName} (${email})`
+
+  console.log('[signup] new signup:', { company: companyName, name: fullName, email })
+
+  if (!SIGNUP_NOTIFY_PHONE) {
+    console.log('[signup] PHILIP_PHONE_NUMBER not set — skipping signup SMS')
+    return
+  }
+
+  sendSms({ to: SIGNUP_NOTIFY_PHONE, body })
+    .then((r) => {
+      if (r.sent) console.log('[signup] signup SMS sent', r.sid)
+      else console.log('[signup] signup SMS not sent:', r.error)
+    })
+    .catch((e) => console.log('[signup] signup SMS error:', e?.message))
+}
 
 export async function POST(request) {
   let body
@@ -57,6 +83,15 @@ export async function POST(request) {
       { status: 500 }
     )
   }
+
+  // Fire-and-forget — do NOT await, so a slow/failed Twilio call can't delay
+  // or break the signup response.
+  notifyNewSignup({
+    firstName: (body?.first_name || '').trim(),
+    lastName: (body?.last_name || '').trim(),
+    companyName: company_name,
+    email: user.email,
+  })
 
   return Response.json({ facility_id: facilityId })
 }
