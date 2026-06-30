@@ -14,6 +14,17 @@ export function downloadCanvas(canvas, filename) {
   document.body.removeChild(a)
 }
 
+// Trigger a browser download of an existing data URL (e.g. an AI-generated
+// PNG returned by /api/ai-generate) without going through a canvas.
+export function downloadDataUrl(dataUrl, filename) {
+  const a = document.createElement('a')
+  a.href = dataUrl
+  a.download = filename.endsWith('.png') ? filename : `${filename}.png`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+}
+
 // Load an image for canvas drawing. Requests CORS so the canvas stays
 // untainted (Supabase storage allows cross-origin reads); resolves to null on
 // any failure so a missing/blocked logo never breaks the export.

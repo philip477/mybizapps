@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import { downloadCanvas, loadImage, wrapText, slugify } from '../canvasUtils'
+import { generateAiImage } from '../aiClient'
 
 // Letter size 8.5" x 11". Download at 150 DPI (1275 x 1650).
 const FLYER_W = 1275
@@ -40,6 +41,12 @@ export default function FlyerGeneratorClient({ initial }) {
   const [imageData, setImageData] = useState(null)
   const [busy, setBusy] = useState(false)
 
+  // AI hero image generation. The result flows into the same `imageData` slot
+  // used by uploads, so the preview and canvas pick it up automatically.
+  const [aiDesc, setAiDesc] = useState('')
+  const [aiBusy, setAiBusy] = useState(false)
+  const [aiError, setAiError] = useState(null)
+
   const tmpl = TEMPLATES.find((t) => t.key === template) || TEMPLATES[0]
 
   function onImagePick(e) {
@@ -48,6 +55,23 @@ export default function FlyerGeneratorClient({ initial }) {
     const reader = new FileReader()
     reader.onload = () => setImageData(reader.result)
     reader.readAsDataURL(file)
+  }
+
+  async function handleAiGenerate() {
+    setAiBusy(true)
+    setAiError(null)
+    try {
+      const { image } = await generateAiImage({
+        type: 'flyer-graphic',
+        description: aiDesc,
+        style: template,
+      })
+      setImageData(image)
+    } catch (e) {
+      setAiError(e.message)
+    } finally {
+      setAiBusy(false)
+    }
   }
 
   async function handleDownload() {
@@ -107,8 +131,22 @@ export default function FlyerGeneratorClient({ initial }) {
           </Field>
           <Field label="Company"><input style={fieldStyle} value={company} onChange={(e) => setCompany(e.target.value)} /></Field>
           <Field label="Contact info"><input style={fieldStyle} value={contact} onChange={(e) => setContact(e.target.value)} /></Field>
-          <Field label="Image (optional)">
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <Field label="Hero image (optional)">
+            {/* AI hero image: describe it and let DALL·E generate, or upload your own. */}
+            <textarea
+              style={{ ...fieldStyle, minHeight: 56, resize: 'vertical', marginBottom: 8 }}
+              value={aiDesc}
+              onChange={(e) => setAiDesc(e.target.value)}
+              placeholder="Describe a hero image — e.g. a smiling technician fixing an air conditioner"
+            />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button onClick={handleAiGenerate} disabled={aiBusy || !aiDesc.trim()} style={{
+                padding: '8px 14px', fontSize: 14, fontWeight: 700, color: '#fff',
+                background: aiBusy || !aiDesc.trim() ? '#88a8cc' : '#1a56a0',
+                border: 'none', borderRadius: 8, cursor: aiBusy || !aiDesc.trim() ? 'default' : 'pointer',
+              }}>
+                {aiBusy ? 'Generating…' : '✨ Generate hero image'}
+              </button>
               <label style={{
                 display: 'inline-block', padding: '8px 14px', fontSize: 14, fontWeight: 600,
                 color: '#1a56a0', background: '#fff', border: '1.5px solid #d0e0f4', borderRadius: 8, cursor: 'pointer',
@@ -123,6 +161,7 @@ export default function FlyerGeneratorClient({ initial }) {
                 }}>Remove</button>
               )}
             </div>
+            {aiError && <div style={{ color: '#d93025', fontSize: 13, marginTop: 6 }}>{aiError}</div>}
           </Field>
         </div>
 

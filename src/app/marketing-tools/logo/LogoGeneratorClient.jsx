@@ -3,7 +3,16 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
-import { downloadCanvas, slugify, FONT_STACKS } from '../canvasUtils'
+import { downloadCanvas, downloadDataUrl, slugify, FONT_STACKS } from '../canvasUtils'
+import { generateAiImage } from '../aiClient'
+
+const AI_STYLES = [
+  { key: 'modern', label: 'Modern' },
+  { key: 'classic', label: 'Classic' },
+  { key: 'minimalist', label: 'Minimalist' },
+  { key: 'bold', label: 'Bold' },
+  { key: 'playful', label: 'Playful' },
+]
 
 const FONTS = [
   { key: 'modern', label: 'Modern', weight: 600 },
@@ -44,11 +53,37 @@ const sectionStyle = { padding: '0 12px', marginBottom: 14 }
 
 export default function LogoGeneratorClient({ companyName }) {
   const router = useRouter()
+  const [mode, setMode] = useState('manual') // 'manual' | 'ai'
   const [name, setName] = useState(companyName || 'Your Company')
   const [font, setFont] = useState('modern')
   const [color, setColor] = useState('#1a56a0')
   const [icon, setIcon] = useState('gear')
   const [layout, setLayout] = useState('above')
+
+  // AI generation state.
+  const [aiDesc, setAiDesc] = useState('')
+  const [aiStyle, setAiStyle] = useState('modern')
+  const [aiImage, setAiImage] = useState(null)
+  const [aiBusy, setAiBusy] = useState(false)
+  const [aiError, setAiError] = useState(null)
+
+  async function handleAiGenerate() {
+    setAiBusy(true)
+    setAiError(null)
+    try {
+      const { image } = await generateAiImage({
+        type: 'logo',
+        description: aiDesc,
+        style: aiStyle,
+        companyName: name,
+      })
+      setAiImage(image)
+    } catch (e) {
+      setAiError(e.message)
+    } finally {
+      setAiBusy(false)
+    }
+  }
 
   const fontDef = FONTS.find((f) => f.key === font) || FONTS[0]
   const iconDef = ICONS.find((i) => i.key === icon) || ICONS[0]
@@ -107,6 +142,8 @@ export default function LogoGeneratorClient({ companyName }) {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <PageHeader title="Logo Generator" onBack={() => router.push('/marketing-tools')} appIcon="🎨" />
 
+      <TabBar mode={mode} setMode={setMode} />
+
       {/* Live preview */}
       <div style={{ background: '#f5f8ff', padding: '16px 12px', borderBottom: '1.5px solid #d0e0f4' }}>
         <div
@@ -116,24 +153,77 @@ export default function LogoGeneratorClient({ companyName }) {
             padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
           }}
         >
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexDirection: layout === 'left' ? 'row' : 'column', gap: layout === 'left' ? 14 : 8,
-          }}>
-            {showIcon && (
-              <span style={{ fontSize: layout === 'left' ? 56 : 72, lineHeight: 1 }}>{iconDef.emoji}</span>
-            )}
-            <span style={{
-              fontFamily: FONT_STACKS[font], fontWeight: fontDef.weight, color,
-              fontSize: 34, lineHeight: 1.1, textAlign: 'center', wordBreak: 'break-word',
+          {mode === 'manual' ? (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexDirection: layout === 'left' ? 'row' : 'column', gap: layout === 'left' ? 14 : 8,
             }}>
-              {name || 'Your Company'}
-            </span>
-          </div>
+              {showIcon && (
+                <span style={{ fontSize: layout === 'left' ? 56 : 72, lineHeight: 1 }}>{iconDef.emoji}</span>
+              )}
+              <span style={{
+                fontFamily: FONT_STACKS[font], fontWeight: fontDef.weight, color,
+                fontSize: 34, lineHeight: 1.1, textAlign: 'center', wordBreak: 'break-word',
+              }}>
+                {name || 'Your Company'}
+              </span>
+            </div>
+          ) : aiImage ? (
+            <img src={aiImage} alt="AI-generated logo" style={{ maxWidth: '100%', maxHeight: 240, objectFit: 'contain' }} />
+          ) : (
+            <div style={{ color: '#88a8cc', fontSize: 14, textAlign: 'center', lineHeight: 1.5 }}>
+              {aiBusy ? <Spinner label="Generating your logo…" /> : 'Describe your business below and tap Generate Logo.'}
+            </div>
+          )}
         </div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', paddingTop: 14 }}>
+       {mode === 'ai' ? (
+        <>
+          <div style={sectionStyle}>
+            <label style={labelStyle}>Describe your business</label>
+            <textarea
+              style={{ ...fieldStyle, minHeight: 64, resize: 'vertical' }}
+              value={aiDesc}
+              onChange={(e) => setAiDesc(e.target.value)}
+              placeholder="e.g. HVAC repair company in Ohio"
+            />
+          </div>
+
+          <div style={sectionStyle}>
+            <label style={labelStyle}>Style</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {AI_STYLES.map((s) => (
+                <Chip key={s.key} active={aiStyle === s.key} onClick={() => setAiStyle(s.key)}>{s.label}</Chip>
+              ))}
+            </div>
+          </div>
+
+          {aiError && (
+            <div style={{ ...sectionStyle, color: '#d93025', fontSize: 13, lineHeight: 1.5 }}>{aiError}</div>
+          )}
+
+          <div style={{ ...sectionStyle, marginTop: 16, marginBottom: 28, display: 'flex', gap: 8 }}>
+            <button onClick={handleAiGenerate} disabled={aiBusy || !aiDesc.trim()} style={{
+              flex: 1, padding: '12px', fontSize: 16, fontWeight: 700, color: '#fff',
+              background: aiBusy || !aiDesc.trim() ? '#88a8cc' : '#1a56a0',
+              border: 'none', borderRadius: 8, cursor: aiBusy || !aiDesc.trim() ? 'default' : 'pointer',
+            }}>
+              {aiBusy ? 'Generating…' : aiImage ? 'Regenerate' : 'Generate Logo'}
+            </button>
+            {aiImage && !aiBusy && (
+              <button onClick={() => downloadDataUrl(aiImage, `${slugify(name, 'logo')}-ai-logo`)} style={{
+                flex: 1, padding: '12px', fontSize: 16, fontWeight: 700, color: '#1a56a0',
+                background: '#fff', border: '1.5px solid #1a56a0', borderRadius: 8, cursor: 'pointer',
+              }}>
+                Download PNG
+              </button>
+            )}
+          </div>
+        </>
+       ) : (
+        <>
         <div style={sectionStyle}>
           <label style={labelStyle}>Company name</label>
           <input style={fieldStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="Your Company" />
@@ -202,7 +292,38 @@ export default function LogoGeneratorClient({ companyName }) {
             Download PNG
           </button>
         </div>
+        </>
+       )}
       </div>
+    </div>
+  )
+}
+
+function TabBar({ mode, setMode }) {
+  const tab = (key, label) => (
+    <button onClick={() => setMode(key)} style={{
+      flex: 1, padding: '10px 8px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+      border: 'none', background: 'transparent', color: mode === key ? '#1a56a0' : '#88a8cc',
+      borderBottom: mode === key ? '3px solid #1a56a0' : '3px solid transparent',
+    }}>{label}</button>
+  )
+  return (
+    <div style={{ display: 'flex', background: '#fff', borderBottom: '1.5px solid #d0e0f4' }}>
+      {tab('ai', '✨ AI Generate')}
+      {tab('manual', '🎨 Manual Designer')}
+    </div>
+  )
+}
+
+function Spinner({ label }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+      <div style={{
+        width: 28, height: 28, border: '3px solid #d0e0f4', borderTopColor: '#1a56a0',
+        borderRadius: '50%', animation: 'mtspin 0.8s linear infinite',
+      }} />
+      <span>{label}</span>
+      <style>{'@keyframes mtspin{to{transform:rotate(360deg)}}'}</style>
     </div>
   )
 }

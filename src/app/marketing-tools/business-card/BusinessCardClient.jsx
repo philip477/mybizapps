@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import PageHeader from '@/components/ui/PageHeader'
 import { downloadCanvas, loadImage, slugify } from '../canvasUtils'
+import { generateAiImage } from '../aiClient'
 
 // Standard card: 3.5" x 2". The preview renders at a fixed width; the download
 // renders at 300 DPI (1050 x 600) for print quality.
@@ -32,7 +33,29 @@ export default function BusinessCardClient({ initial }) {
   const [color, setColor] = useState('#1a56a0')
   const [busy, setBusy] = useState(false)
 
+  // AI background accent graphic (data URL composited onto the card).
+  const [aiGraphic, setAiGraphic] = useState(null)
+  const [aiBusy, setAiBusy] = useState(false)
+  const [aiError, setAiError] = useState(null)
+
   const set = (key) => (e) => setF((prev) => ({ ...prev, [key]: e.target.value }))
+
+  async function handleAiGenerate() {
+    setAiBusy(true)
+    setAiError(null)
+    try {
+      const { image } = await generateAiImage({
+        type: 'business-card-graphic',
+        description: f.company ? `the business "${f.company}"` : '',
+        style: template,
+      })
+      setAiGraphic(image)
+    } catch (e) {
+      setAiError(e.message)
+    } finally {
+      setAiBusy(false)
+    }
+  }
 
   async function handleDownload() {
     setBusy(true)
@@ -42,8 +65,8 @@ export default function BusinessCardClient({ initial }) {
       canvas.width = CARD_W * scale
       canvas.height = CARD_H * scale
       const ctx = canvas.getContext('2d')
-      const logo = await loadImage(f.logoUrl)
-      drawCard(ctx, { ...f, color, template, logo })
+      const [logo, graphic] = await Promise.all([loadImage(f.logoUrl), loadImage(aiGraphic)])
+      drawCard(ctx, { ...f, color, template, logo, graphic })
       downloadCanvas(canvas, `${slugify(f.name || f.company, 'business-card')}-card`)
     } finally {
       setBusy(false)
@@ -56,7 +79,7 @@ export default function BusinessCardClient({ initial }) {
 
       {/* Live preview — scaled DOM mock at card proportions (3.5:2). */}
       <div style={{ background: '#f5f8ff', padding: '16px 12px', borderBottom: '1.5px solid #d0e0f4', display: 'flex', justifyContent: 'center' }}>
-        <CardPreview f={f} color={color} template={template} />
+        <CardPreview f={f} color={color} template={template} aiGraphic={aiGraphic} />
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', paddingTop: 14 }}>
@@ -66,6 +89,28 @@ export default function BusinessCardClient({ initial }) {
 
         <Section label="Accent color">
           <ColorRow color={color} setColor={setColor} />
+        </Section>
+
+        <Section label="AI design accent">
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button onClick={handleAiGenerate} disabled={aiBusy} style={{
+              padding: '8px 14px', fontSize: 14, fontWeight: 700, color: '#fff',
+              background: aiBusy ? '#88a8cc' : '#1a56a0', border: 'none', borderRadius: 8,
+              cursor: aiBusy ? 'default' : 'pointer',
+            }}>
+              {aiBusy ? 'Generating…' : aiGraphic ? '✨ Regenerate design' : '✨ Generate design'}
+            </button>
+            {aiGraphic && !aiBusy && (
+              <button onClick={() => setAiGraphic(null)} style={{
+                padding: '8px 12px', fontSize: 14, color: '#d93025', background: '#fff',
+                border: '1.5px solid #d0e0f4', borderRadius: 8, cursor: 'pointer',
+              }}>Remove</button>
+            )}
+          </div>
+          <div style={{ fontSize: 12, color: '#88a8cc', marginTop: 6, lineHeight: 1.4 }}>
+            AI creates a subtle background accent for your card.
+          </div>
+          {aiError && <div style={{ color: '#d93025', fontSize: 13, marginTop: 6 }}>{aiError}</div>}
         </Section>
 
         <div style={{ padding: '0 12px' }}>
@@ -94,10 +139,14 @@ export default function BusinessCardClient({ initial }) {
 
 // ---- Live DOM preview ------------------------------------------------------
 
-function CardPreview({ f, color, template }) {
-  // Preview box at 350x200 (10% of the print size, same 3.5:2 ratio).
+function CardPreview({ f, color, template, aiGraphic }) {
+  // Preview box at 350x200 (10% of the print size, same 3.5:2 ratio). When an AI
+  // accent is present we composite it behind a white veil so text stays legible.
   const base = {
-    width: 350, height: 200, background: '#fff', borderRadius: 8, position: 'relative',
+    width: 350, height: 200, borderRadius: 8, position: 'relative',
+    background: aiGraphic
+      ? `linear-gradient(rgba(255,255,255,0.82), rgba(255,255,255,0.82)), center/cover no-repeat url(${aiGraphic})`
+      : '#fff',
     overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.15)', fontFamily: "'Segoe UI', system-ui, sans-serif",
     boxSizing: 'border-box',
   }
@@ -197,6 +246,16 @@ function drawCard(ctx, o) {
   const { color, template } = o
   ctx.fillStyle = '#ffffff'
   ctx.fillRect(0, 0, CARD_W, CARD_H)
+  // AI background accent: cover-fit the graphic, then lay a white veil over it so
+  // the card text stays readable (mirrors the preview's gradient overlay).
+  if (o.graphic) {
+    const scale = Math.max(CARD_W / o.graphic.width, CARD_H / o.graphic.height)
+    const dw = o.graphic.width * scale
+    const dh = o.graphic.height * scale
+    ctx.drawImage(o.graphic, (CARD_W - dw) / 2, (CARD_H - dh) / 2, dw, dh)
+    ctx.fillStyle = 'rgba(255,255,255,0.82)'
+    ctx.fillRect(0, 0, CARD_W, CARD_H)
+  }
   ctx.textBaseline = 'alphabetic'
   const sans = "'Segoe UI', Arial, sans-serif"
   const name = o.name || 'Your Name'
