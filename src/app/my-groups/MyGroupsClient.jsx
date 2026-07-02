@@ -68,7 +68,7 @@ export default function MyGroupsClient({
 
   // Create / edit a group.
   const [groupModal, setGroupModal] = useState(null) // 'create' | { ...group } when editing
-  const [groupForm, setGroupForm]   = useState({ name: '', description: '', active: true })
+  const [groupForm, setGroupForm]   = useState({ name: '', description: '', active: true, use_group_docs: false })
   const [groupSaving, setGroupSaving] = useState(false)
   const [groupError, setGroupError]   = useState(null)
 
@@ -143,13 +143,13 @@ export default function MyGroupsClient({
 
   function openCreateGroup() {
     setGroupError(null)
-    setGroupForm({ name: '', description: '', active: true })
+    setGroupForm({ name: '', description: '', active: true, use_group_docs: false })
     setGroupModal('create')
   }
 
   function openEditGroup(group) {
     setGroupError(null)
-    setGroupForm({ name: group.name || '', description: group.description || '', active: group.active !== false })
+    setGroupForm({ name: group.name || '', description: group.description || '', active: group.active !== false, use_group_docs: !!group.use_group_docs })
     setGroupModal(group)
   }
 
@@ -174,6 +174,7 @@ export default function MyGroupsClient({
           name,
           description: groupForm.description.trim() || null,
           active: true,
+          use_group_docs: !!groupForm.use_group_docs,
         })
         .select()
         .single()
@@ -202,6 +203,7 @@ export default function MyGroupsClient({
       name,
       description: groupForm.description.trim() || null,
       active: !!groupForm.active,
+      use_group_docs: !!groupForm.use_group_docs,
     }
     const { error } = await supabase
       .from('biz_groups')
@@ -539,6 +541,22 @@ export default function MyGroupsClient({
                 Active
               </label>
             )}
+
+            {/* Opt this group into the My Docs (Group Documents) app. */}
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12, cursor: 'pointer', fontSize: 14, color: '#1A1A2E' }}>
+              <input
+                type="checkbox"
+                checked={!!groupForm.use_group_docs}
+                onChange={e => setGroupForm(f => ({ ...f, use_group_docs: e.target.checked }))}
+                style={{ width: 18, height: 18, marginTop: 1, flexShrink: 0 }}
+              />
+              <span>
+                Group Docs
+                <span style={{ display: 'block', fontSize: 12, color: '#888', marginTop: 2 }}>
+                  Give this group a shared documents area in My Docs. Group leaders manage its folders and files.
+                </span>
+              </span>
+            </label>
 
             {groupError && (
               <div style={{ background: '#fde8e8', color: '#b02020', padding: '8px 12px', borderRadius: 8, fontSize: 13, marginBottom: 12 }}>{groupError}</div>

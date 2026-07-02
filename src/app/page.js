@@ -85,7 +85,7 @@ export default async function HomePage() {
   let groupApps = []
 
   if (fid) {
-    const [{ data: perms }, { data: memberships }, { data: accessCfg }, { data: allActive }] =
+    const [{ data: perms }, { data: memberships }, { data: accessCfg }, { data: allActive }, { data: docsGroups }] =
       await Promise.all([
         supabase
           .from('biz_app_permission_mains')
@@ -106,6 +106,13 @@ export default async function HomePage() {
           .eq('active', true)
           .eq('app_type', 'User App')
           .order('app_name'),
+        // Groups opted into Group Docs (the My Groups "Group Docs" toggle) —
+        // their members get the My Docs tile without separate App Config.
+        supabase
+          .from('biz_groups')
+          .select('id')
+          .eq('active', true)
+          .eq('use_group_docs', true),
       ])
 
     const userGroupIds = new Set((memberships || []).map((m) => m.group_id))
@@ -154,7 +161,13 @@ export default async function HomePage() {
       const gb = GROUP_BASED_BY_LINK[app.app_link]
       if (gb) {
         const grp = accessGroupByApp[app.id]
-        if (grp && userGroupIds.has(grp)) groupApps.push(app)
+        // My Docs is also surfaced by the per-group "Group Docs" opt-in, so a
+        // leader flipping that toggle actually delivers the app to members —
+        // the page itself scopes which groups' documents each user sees.
+        const inDocsGroup =
+          app.app_link === '/my-docs' &&
+          (docsGroups || []).some((g) => userGroupIds.has(g.id))
+        if ((grp && userGroupIds.has(grp)) || inDocsGroup) groupApps.push(app)
         continue
       }
       // Unknown app — never hide it. Show alongside the group-based tier.
